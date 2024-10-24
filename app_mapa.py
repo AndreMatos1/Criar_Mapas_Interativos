@@ -50,7 +50,7 @@ if not st.session_state["files_loaded"]:
     # Verificar se ambos os arquivos foram carregados
     if 'df' in st.session_state and 'municipios_geojson' in st.session_state:
         st.session_state["files_loaded"] = True  # Atualizar o estado para indicar que os arquivos foram carregados
-        st.experimental_rerun()  # Redirecionar para atualizar a página e mostrar o mapa
+        st.rerun()  # Redirecionar para atualizar a página e mostrar o mapa
 
 # Exibir o mapa apenas se os arquivos foram carregados
 if st.session_state["files_loaded"]:
