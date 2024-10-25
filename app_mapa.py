@@ -16,7 +16,7 @@ def calculate_mean_coordinates(coordinates):
     return mean_lat, mean_lon
 
 # Configuração do Streamlit
-st.set_page_config(page_title="Criar Mapas Interativos", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="Criar Mapas Interativos", page_icon="🌍")
 st.title("Mapa de Cidades por Estado")
 
 # Inicializar estado de sessão para controlar exibição
