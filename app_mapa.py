@@ -2,10 +2,10 @@ import pandas as pd
 import folium
 import json
 import streamlit as st
-from folium import FeatureGroup
-from folium import GeoJsonTooltip
+from folium import FeatureGroup, GeoJsonTooltip
 from streamlit_folium import folium_static
-from folium.plugins import Fullscreen  # Importar o plugin Fullscreen
+from folium.plugins import Fullscreen
+import os
 
 # Função para calcular a média das coordenadas de um município (polígono)
 def calculate_mean_coordinates(coordinates):
@@ -25,37 +25,42 @@ if "files_loaded" not in st.session_state:
 
 # Verificar se os arquivos foram carregados e redirecionar para a tela do mapa
 if not st.session_state["files_loaded"]:
-    # Exibir campos de upload de arquivo apenas se os arquivos ainda não foram carregados
-    st.write("Por favor, faça o upload do arquivo em Excel e do arquivo JSON.")
-
     # Carregar o arquivo Excel com as cidades geocodificadas
     excel_file = st.file_uploader("Carregar arquivo Excel com as cidades e regiões.", type=["xlsx"])
     if excel_file is not None:
         df = pd.read_excel(excel_file)
-        df.columns = df.columns.str.strip()  # Remover espaços extras nos nomes das colunas
+        df.columns = df.columns.str.strip()
 
         # Verificar se a coluna 'Cidade' está presente
         if 'Cidade' not in df.columns:
             st.error("A coluna 'Cidade' não foi encontrada no arquivo Excel. Verifique se há espaços extras ou outro erro.")
         else:
-            st.session_state['df'] = df  # Armazenar o DataFrame no estado da sessão
+            st.session_state['df'] = df
             st.success(f"Arquivo {excel_file.name} carregado com sucesso!")
 
-    # Carregar o arquivo JSON com os limites dos municípios
-    json_file = st.file_uploader("Carregar arquivo JSON da UF correspondente às cidades do arquivo Excel.", type=["json"])
-    if json_file is not None:
-        municipios_geojson = json.load(json_file)
-        st.session_state['municipios_geojson'] = municipios_geojson  # Armazenar o GeoJSON no estado da sessão
+    # Selecionar o estado brasileiro
+    estados = ["Selecione Estado", "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", 
+               "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]
+    estado_selecionado = st.selectbox("Selecione Estado", estados)
 
-    # Verificar se ambos os arquivos foram carregados
-    if 'df' in st.session_state and 'municipios_geojson' in st.session_state:
-        st.session_state["files_loaded"] = True  # Atualizar o estado para indicar que os arquivos foram carregados
-        st.rerun()  # Redirecionar para atualizar a página e mostrar o mapa
+    # Verificar se o usuário selecionou um estado válido
+    if estado_selecionado != "Selecione Estado":
+        json_path = f"Json_Polígonos_Geom_Cidades_Brasil/limites_mun_{estado_selecionado}.json"
+        
+        if os.path.exists(json_path):
+            # Abrir o arquivo JSON com a codificação utf-8
+            with open(json_path, 'r', encoding='utf-8') as json_file:
+                municipios_geojson = json.load(json_file)
+                st.session_state['municipios_geojson'] = municipios_geojson
+                st.session_state["files_loaded"] = True
+                st.rerun()  # Redirecionar para atualizar a página e mostrar o mapa
+        else:
+            st.error(f"Arquivo JSON para o estado {estado_selecionado} não encontrado.")
 
 # Exibir o mapa apenas se os arquivos foram carregados
 if st.session_state["files_loaded"]:
-    df = st.session_state['df']  # Recuperar o DataFrame do estado da sessão
-    municipios_geojson = st.session_state['municipios_geojson']  # Recuperar o GeoJSON do estado da sessão
+    df = st.session_state['df']
+    municipios_geojson = st.session_state['municipios_geojson']
 
     # Converter a coluna 'Cidade' para minúsculas
     df['Cidade'] = df['Cidade'].str.lower()
@@ -117,9 +122,7 @@ if st.session_state["files_loaded"]:
 
     folium.LayerControl(collapsed=False).add_to(mapa)
 
-    # Exibir o mapa
-    #st.subheader("Mapa de Cidades por Regiões")
-    folium_static(mapa)  # Renderiza o mapa interativo no Streamlit
+    folium_static(mapa)
 
     # Salvar o mapa como um arquivo HTML
     html_file = "mapa_interativo.html"
