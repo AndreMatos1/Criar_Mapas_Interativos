@@ -74,7 +74,7 @@ if st.session_state["files_loaded"]:
     mean_lat = sum(coord[0] for coord in municipio_coords) / len(municipio_coords)
     mean_lon = sum(coord[1] for coord in municipio_coords) / len(municipio_coords)
 
-    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6)
+    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=5)
 
     # Adicionar o plugin Fullscreen
     Fullscreen(position='topright').add_to(mapa)
