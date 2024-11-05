@@ -91,7 +91,7 @@ if st.session_state["files_loaded"]:
     ).add_to(estado_sp_layer)
     estado_sp_layer.add_to(mapa)
 
-    colors = ['#0066CC', '#009900', '#FFA95B', '#68D668', '#AB87CB', '#8b0000', '#ff6347',
+    colors = ['#0066CC', '#009900', '#FFA95B', '#996633', '#AB87CB', '#37C8FB', '#FF4D2F',
               '#f5deb3', '#00008b', '#006400', '#5f9ea0', '#4b0082', '#ffffff',
               '#ffc0cb', '#87cefa', '#90ee90', '#808080', '#000000', '#d3d3d3']
     mesorregioes = df['Região'].unique()
