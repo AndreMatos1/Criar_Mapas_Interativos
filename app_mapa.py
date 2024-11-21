@@ -93,7 +93,8 @@ if st.session_state["files_loaded"]:
 
     colors = ['#0066CC', '#009900', '#FF8211', '#EBE600', '#AB87CB', '#37C8FB', '#FF4D2F',
               '#2683B2', '#EA9AD1', '#777777', '#95951B', '#47DBEB', '#09FF09',
-              '#FC8CE7', '#A3D9FB', '#5DF977', '#A1A1A1', '#007456', '#FFFF00']
+              '#FC8CE7', '#A3D9FB', '#5DF977', '#A1A1A1', '#007456', '#FFFF00', '#CC9900', 
+              '#0000FF', '#CC3300', '#888778', '#333333', '#00FFFF']
     mesorregioes = df['Região'].unique()
     mesorregioes.sort()
     color_map = {meso: colors[i % len(colors)] for i, meso in enumerate(mesorregioes)}
