@@ -95,6 +95,7 @@ if st.session_state["files_loaded"]:
               '#2683B2', '#EA9AD1', '#777777', '#95951B', '#47DBEB', '#09FF09',
               '#FC8CE7', '#A3D9FB', '#5DF977', '#A1A1A1', '#007456', '#FFFF00']
     mesorregioes = df['Região'].unique()
+    mesorregioes.sort()
     color_map = {meso: colors[i % len(colors)] for i, meso in enumerate(mesorregioes)}
 
     meso_layers = {meso: FeatureGroup(name=meso, show=True) for meso in mesorregioes}
