@@ -97,7 +97,7 @@ if st.session_state["files_loaded"]:
     mesorregioes = df['Região'].unique()
     color_map = {meso: colors[i % len(colors)] for i, meso in enumerate(mesorregioes)}
 
-    meso_layers = {meso: FeatureGroup(name=meso, show=False) for meso in mesorregioes}
+    meso_layers = {meso: FeatureGroup(name=meso, show=True) for meso in mesorregioes}
 
     for feature in municipios_geojson['features']:
         municipio_nome = feature['properties']['name'].lower()
