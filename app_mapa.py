@@ -91,9 +91,9 @@ if st.session_state["files_loaded"]:
     ).add_to(estado_sp_layer)
     estado_sp_layer.add_to(mapa)
 
-    colors = ['#0066CC', '#009900', '#FF8211', '#EBE600', '#AB87CB', '#37C8FB', '#FF4D2F',
-              '#2683B2', '#e377c2', '#7f7f7f', '#95951B', '#17becf', '#009900',
-              '#ffc0cb', '#87cefa', '#90ee90', '#808080', '#00CC99', '#d3d3d3']
+    colors = ['#0066CC'	'#009900'	'#FF8211'	'#EBE600'	'#AB87CB'	'#37C8FB', '#FF4D2F',
+              '#2683B2'	'#EA9AD1'	'#777777'	'#95951B'	'#47DBEB'	'#09FF09',
+              '#FC8CE7'	'#A3D9FB'	'#5DF977'	'#A1A1A1'	'#007456'	'#FFFF00']
     mesorregioes = df['Região'].unique()
     color_map = {meso: colors[i % len(colors)] for i, meso in enumerate(mesorregioes)}
 
