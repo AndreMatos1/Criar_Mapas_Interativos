@@ -56,6 +56,16 @@ if not st.session_state["files_loaded"]:
                 st.rerun()  # Redirecionar para atualizar a página e mostrar o mapa
         else:
             st.error(f"Arquivo JSON para o estado {estado_selecionado} não encontrado.")
+    # Nota de rodapé no Streamlit
+    st.markdown(
+        """
+        <hr style="margin-top: 50px;">
+        <div style="text-align: center; font-size: 12px; color: gray;">
+            Developed by André Matos
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # Exibir o mapa apenas se os arquivos foram carregados
 if st.session_state["files_loaded"]:
@@ -74,7 +84,7 @@ if st.session_state["files_loaded"]:
     mean_lat = sum(coord[0] for coord in municipio_coords) / len(municipio_coords)
     mean_lon = sum(coord[1] for coord in municipio_coords) / len(municipio_coords)
 
-    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=7)
+    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6)
 
     # Adicionar o plugin Fullscreen
     Fullscreen(position='topright').add_to(mapa)
@@ -91,15 +101,13 @@ if st.session_state["files_loaded"]:
     ).add_to(estado_sp_layer)
     estado_sp_layer.add_to(mapa)
 
-    colors = ['#0066CC', '#009900', '#FF8211', '#EBE600', '#AB87CB', '#37C8FB', '#FF4D2F',
-              '#2683B2', '#EA9AD1', '#777777', '#95951B', '#47DBEB', '#09FF09',
-              '#FC8CE7', '#A3D9FB', '#5DF977', '#A1A1A1', '#007456', '#FFFF00', '#CC9900', 
-              '#0000FF', '#CC3300', '#888778', '#333333', '#00FFFF']
+    colors = ['#0066CC', '#009900', '#FFA95B', '#68D668', '#AB87CB', '#8b0000', '#ff6347',
+              '#f5deb3', '#00008b', '#006400', '#5f9ea0', '#4b0082', '#ffffff',
+              '#ffc0cb', '#87cefa', '#90ee90', '#808080', '#000000', '#d3d3d3']
     mesorregioes = df['Região'].unique()
-    mesorregioes.sort()
     color_map = {meso: colors[i % len(colors)] for i, meso in enumerate(mesorregioes)}
 
-    meso_layers = {meso: FeatureGroup(name=meso, show=True) for meso in mesorregioes}
+    meso_layers = {meso: FeatureGroup(name=meso, show=False) for meso in mesorregioes}
 
     for feature in municipios_geojson['features']:
         municipio_nome = feature['properties']['name'].lower()
@@ -133,3 +141,14 @@ if st.session_state["files_loaded"]:
     # Botão para download do arquivo HTML
     with open(html_file, 'rb') as f:
         st.download_button("Baixar Mapa em HTML", f, file_name=html_file, mime="text/html")
+
+    # Nota de rodapé no Streamlit
+    st.markdown(
+        """
+        <hr style="margin-top: 50px;">
+        <div style="text-align: center; font-size: 12px; color: gray;">
+            Developed by André Matos
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
