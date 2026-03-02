@@ -7,6 +7,28 @@ from streamlit_folium import folium_static
 from folium.plugins import Fullscreen
 import os
 
+
+def load_geojson_for_states(selected_states):
+    combined_features = []
+    missing_states = []
+
+    for uf in selected_states:
+        json_path = f"Json_Polígonos_Geom_Cidades_Brasil/limites_mun_{uf}.json"
+        if not os.path.exists(json_path):
+            missing_states.append(uf)
+            continue
+
+        with open(json_path, 'r', encoding='utf-8') as json_file:
+            geojson_data = json.load(json_file)
+            for feature in geojson_data.get('features', []):
+                feature.setdefault('properties', {})['uf'] = uf
+                combined_features.append(feature)
+
+    return {
+        'type': 'FeatureCollection',
+        'features': combined_features
+    }, missing_states
+
 # Função para calcular a média das coordenadas de um município (polígono)
 def calculate_mean_coordinates(coordinates):
     if isinstance(coordinates[0][0], list):
@@ -38,24 +60,23 @@ if not st.session_state["files_loaded"]:
             st.session_state['df'] = df
             st.success(f"Arquivo {excel_file.name} carregado com sucesso!")
 
-    # Selecionar o estado brasileiro
-    estados = ["Selecione Estado", "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", 
+    # Selecionar os estados brasileiros
+    estados = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
                "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]
-    estado_selecionado = st.selectbox("Selecione Estado", estados)
+    estados_selecionados = st.multiselect("Selecione Estado(s)", estados)
 
-    # Verificar se o usuário selecionou um estado válido
-    if estado_selecionado != "Selecione Estado":
-        json_path = f"Json_Polígonos_Geom_Cidades_Brasil/limites_mun_{estado_selecionado}.json"
-        
-        if os.path.exists(json_path):
-            # Abrir o arquivo JSON com a codificação utf-8
-            with open(json_path, 'r', encoding='utf-8') as json_file:
-                municipios_geojson = json.load(json_file)
-                st.session_state['municipios_geojson'] = municipios_geojson
-                st.session_state["files_loaded"] = True
-                st.rerun()  # Redirecionar para atualizar a página e mostrar o mapa
+    if excel_file is not None and estados_selecionados:
+        municipios_geojson, missing_states = load_geojson_for_states(estados_selecionados)
+
+        if missing_states:
+            st.error(f"Arquivo JSON não encontrado para: {', '.join(missing_states)}")
+        elif not municipios_geojson['features']:
+            st.error("Nenhum município foi carregado para os estados selecionados.")
         else:
-            st.error(f"Arquivo JSON para o estado {estado_selecionado} não encontrado.")
+            st.session_state['municipios_geojson'] = municipios_geojson
+            st.session_state['estados_selecionados'] = estados_selecionados
+            st.session_state["files_loaded"] = True
+            st.rerun()  # Redirecionar para atualizar a página e mostrar o mapa
     # Nota de rodapé no Streamlit
     st.markdown(
         """
@@ -71,9 +92,12 @@ if not st.session_state["files_loaded"]:
 if st.session_state["files_loaded"]:
     df = st.session_state['df']
     municipios_geojson = st.session_state['municipios_geojson']
+    estados_selecionados = st.session_state.get('estados_selecionados', [])
 
     # Converter a coluna 'Cidade' para minúsculas
     df['Cidade'] = df['Cidade'].str.lower()
+    if 'UF' in df.columns:
+        df['UF'] = df['UF'].astype(str).str.upper().str.strip()
 
     municipio_coords = []
     for feature in municipios_geojson['features']:
@@ -89,7 +113,7 @@ if st.session_state["files_loaded"]:
     # Adicionar o plugin Fullscreen
     Fullscreen(position='topright').add_to(mapa)
 
-    estado_sp_layer = FeatureGroup(name='Estado', show=True)
+    estado_sp_layer = FeatureGroup(name='Estados selecionados', show=True)
     folium.GeoJson(
         municipios_geojson,
         style_function=lambda x: {
@@ -111,7 +135,12 @@ if st.session_state["files_loaded"]:
 
     for feature in municipios_geojson['features']:
         municipio_nome = feature['properties']['name'].lower()
+        municipio_uf = feature['properties'].get('uf')
+
         row = df[df['Cidade'] == municipio_nome]
+        if 'UF' in df.columns and municipio_uf:
+            row = row[row['UF'] == municipio_uf]
+
         if not row.empty:
             mesorregiao = row['Região'].values[0]
             color = color_map[mesorregiao]
@@ -133,6 +162,9 @@ if st.session_state["files_loaded"]:
     folium.LayerControl(collapsed=False).add_to(mapa)
 
     folium_static(mapa)
+
+    if estados_selecionados:
+        st.caption(f"UFs selecionadas: {', '.join(estados_selecionados)}")
 
     # Salvar o mapa como um arquivo HTML
     html_file = "mapa_interativo.html"
