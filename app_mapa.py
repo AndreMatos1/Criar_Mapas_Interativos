@@ -157,7 +157,7 @@ if st.session_state["files_loaded"]:
         style_function=lambda x: {
             'fillColor': '#d1d5db',
             'color': '#1f2937',
-            'weight': 1.2,
+            'weight': 0.35,
             'fillOpacity': 0.08,
         },
     ).add_to(estado_layer)
