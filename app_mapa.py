@@ -14,6 +14,13 @@ UF_VALIDAS = {
     "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 }
 
+FOOTER_HTML = """
+<hr style="margin-top: 50px;">
+<div style="text-align: center; font-size: 12px; color: gray;">
+    Developed by André Matos
+</div>
+"""
+
 
 def normalize_text(value):
     text = str(value).strip().lower()
@@ -28,6 +35,10 @@ def calculate_mean_coordinates(coordinates):
     mean_lat = sum(coord[1] for coord in coordinates) / len(coordinates)
     mean_lon = sum(coord[0] for coord in coordinates) / len(coordinates)
     return mean_lat, mean_lon
+
+
+def render_footer():
+    st.markdown(FOOTER_HTML, unsafe_allow_html=True)
 
 
 def load_geojson_for_states(selected_states):
@@ -108,15 +119,7 @@ if not st.session_state["files_loaded"]:
                     st.session_state["files_loaded"] = True
                     st.rerun()
 
-    st.markdown(
-        """
-        <hr style="margin-top: 50px;">
-        <div style="text-align: center; font-size: 12px; color: gray;">
-            Developed by André Matos
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_footer()
 
 if st.session_state["files_loaded"]:
     df = st.session_state['df']
@@ -202,11 +205,4 @@ if st.session_state["files_loaded"]:
     with open(html_file, 'rb') as f:
         st.download_button("Baixar Mapa em HTML", f, file_name=html_file, mime="text/html")
 
-    st.markdown(
-        """
-        <hr style="margin-top: 50px;">
-        <div style="text-align: center; font-size: 12px; color: gray;">
-            Developed by André Matos
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_footer()
