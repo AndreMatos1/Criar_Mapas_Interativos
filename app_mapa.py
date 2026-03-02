@@ -9,11 +9,6 @@ from folium import FeatureGroup, GeoJsonTooltip
 from folium.plugins import Fullscreen
 from streamlit_folium import folium_static
 
-UF_VALIDAS = {
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
-    "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-}
-
 
 def normalize_text(value):
     text = str(value).strip().lower()
@@ -79,34 +74,24 @@ if not st.session_state["files_loaded"]:
                 f"{', '.join(sorted(missing_columns))}."
             )
         else:
-            df['Cidade'] = df['Cidade'].fillna('').astype(str).str.strip()
-            df['UF'] = df['UF'].fillna('').astype(str).str.upper().str.strip()
-            df['Região'] = df['Região'].fillna('').astype(str).str.strip()
+            df['Cidade'] = df['Cidade'].astype(str).str.strip()
+            df['UF'] = df['UF'].astype(str).str.upper().str.strip()
+            df['Região'] = df['Região'].astype(str).str.strip()
             df['Cidade_normalizada'] = df['Cidade'].apply(normalize_text)
 
-            invalid_ufs = sorted([uf for uf in df['UF'].unique().tolist() if uf and uf not in UF_VALIDAS])
-            if invalid_ufs:
-                st.warning(f"UF(s) inválida(s) ignorada(s): {', '.join(invalid_ufs)}")
+            estados_detectados = sorted(df['UF'].dropna().unique().tolist())
+            municipios_geojson, missing_states = load_geojson_for_states(estados_detectados)
 
-            df = df[df['UF'].isin(UF_VALIDAS) & (df['Cidade_normalizada'] != '')]
-            estados_detectados = sorted(df['UF'].unique().tolist())
-
-            if not estados_detectados:
-                st.error("Nenhuma UF válida encontrada na planilha.")
+            if missing_states:
+                st.error(f"Arquivo JSON não encontrado para: {', '.join(missing_states)}")
+            elif not municipios_geojson['features']:
+                st.error("Nenhum município foi carregado para as UFs da planilha.")
             else:
-                municipios_geojson, missing_states = load_geojson_for_states(estados_detectados)
-
-                if missing_states:
-                    st.warning(f"Arquivo JSON não encontrado para: {', '.join(missing_states)}")
-
-                if not municipios_geojson['features']:
-                    st.error("Nenhum município foi carregado para as UFs da planilha.")
-                else:
-                    st.session_state['df'] = df
-                    st.session_state['municipios_geojson'] = municipios_geojson
-                    st.session_state['estados_detectados'] = estados_detectados
-                    st.session_state["files_loaded"] = True
-                    st.rerun()
+                st.session_state['df'] = df
+                st.session_state['municipios_geojson'] = municipios_geojson
+                st.session_state['estados_detectados'] = estados_detectados
+                st.session_state["files_loaded"] = True
+                st.rerun()
 
     st.markdown(
         """
@@ -132,9 +117,6 @@ if st.session_state["files_loaded"]:
         st.rerun()
 
     features = municipios_geojson['features']
-    if not features:
-        st.error("Sem feições geográficas para renderizar o mapa.")
-        st.stop()
 
     municipio_coords = []
     for feature in features:
