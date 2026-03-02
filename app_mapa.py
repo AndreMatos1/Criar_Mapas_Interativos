@@ -151,7 +151,7 @@ if st.session_state["files_loaded"]:
     mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6)
     Fullscreen(position='topright').add_to(mapa)
 
-    estado_layer = FeatureGroup(name='Contorno dos estados da planilha', show=True)
+    estado_layer = FeatureGroup(name='Contorno dos estados', show=True)
     folium.GeoJson(
         municipios_geojson,
         style_function=lambda x: {
@@ -163,7 +163,7 @@ if st.session_state["files_loaded"]:
     ).add_to(estado_layer)
     estado_layer.add_to(mapa)
 
-    st.caption("Contorno das UFs mais evidente e municípios com contraste reduzido para facilitar a leitura.")
+    st.caption("Você pode expandir o mapa para melhor visualização ou baixar o arquivo em html.")
 
     colors = [
         '#0066CC', '#009900', '#FFA95B', '#68D668', '#AB87CB', '#8b0000', '#ff6347',
