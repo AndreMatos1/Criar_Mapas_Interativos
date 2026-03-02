@@ -188,7 +188,7 @@ if st.session_state["files_loaded"]:
                     'fillColor': color,
                     'color': '#6b7280',
                     'weight': 0.35,
-                    'fillOpacity': 0.45,
+                    'fillOpacity':1,
                 },
                 tooltip=GeoJsonTooltip(fields=['name', 'uf'], aliases=['Cidade:', 'UF:']),
             ).add_to(meso_layers[mesorregiao])
