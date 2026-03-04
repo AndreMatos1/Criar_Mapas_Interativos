@@ -190,7 +190,7 @@ if st.session_state["files_loaded"]:
                     'weight': 0.35,
                     'fillOpacity':0.6,
                 },
-                tooltip=GeoJsonTooltip(fields=['name', 'uf', 'mesorregiao'], aliases=['Cidade:', 'UF:', 'Região']),
+                tooltip=GeoJsonTooltip(fields=['name', 'uf', 'mesorregioes'], aliases=['Cidade:', 'UF:', 'Região']),
             ).add_to(meso_layers[mesorregiao])
 
     for _, layer in meso_layers.items():
