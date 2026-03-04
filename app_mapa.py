@@ -182,6 +182,10 @@ if st.session_state["files_loaded"]:
         if not row.empty:
             mesorregiao = row['Região'].values[0]
             color = color_map[mesorregiao]
+        
+            # adiciona a região no geojson
+            feature['properties']['regiao'] = mesorregiao
+        
             folium.GeoJson(
                 feature,
                 style_function=lambda x, color=color: {
@@ -190,8 +194,11 @@ if st.session_state["files_loaded"]:
                     'weight': 0.35,
                     'fillOpacity':0.6,
                 },
-                tooltip=GeoJsonTooltip(fields=['name', 'uf', 'meso'], aliases=['Cidade:', 'UF:', 'Região']),
-            ).add_to(meso_layers[mesorregiao])
+                tooltip=GeoJsonTooltip(
+                    fields=['name', 'uf', 'regiao'],
+                    aliases=['Cidade:', 'UF:', 'Região:']
+                ),
+        ).add_to(meso_layers[mesorregiao])
 
     for _, layer in meso_layers.items():
         layer.add_to(mapa)
