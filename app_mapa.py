@@ -148,7 +148,13 @@ if st.session_state["files_loaded"]:
     mean_lat = sum(coord[0] for coord in municipio_coords) / len(municipio_coords)
     mean_lon = sum(coord[1] for coord in municipio_coords) / len(municipio_coords)
 
-    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6)
+    # Evita bloqueio de tiles do OSM em arquivos HTML locais sem cabeçalho Referer.
+    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6, tiles=None)
+    folium.TileLayer(
+        tiles='CartoDB positron',
+        name='Mapa base',
+        control=False,
+    ).add_to(mapa)
     Fullscreen(position='topright').add_to(mapa)
 
     estado_layer = FeatureGroup(name='Contorno dos estados', show=True)
@@ -165,10 +171,11 @@ if st.session_state["files_loaded"]:
 
     st.caption("Você pode expandir o mapa para melhor visualização ou baixar o arquivo em html.")
 
+    # Evita cores muito claras (ex.: branco) que podem parecer "tarja" ao abrir o HTML fora do Streamlit.
     colors = [
-        '#0066CC', '#009900', '#FFA95B', '#68D668', '#AB87CB', '#8b0000', '#ff6347',
-        '#f5deb3', '#00008b', '#006400', '#5f9ea0', '#4b0082', '#ffffff',
-        '#ffc0cb', '#87cefa', '#90ee90', '#808080', '#000000', '#d3d3d3',
+        '#0066CC', '#009900', '#FFA95B', '#68D668', '#AB87CB', '#8B0000', '#FF6347',
+        '#00008B', '#006400', '#5F9EA0', '#4B0082', '#C71585', '#20B2AA',
+        '#CD5C5C', '#2E8B57', '#4169E1', '#708090', '#2F4F4F', '#8A2BE2',
     ]
     mesorregioes = df['Região'].unique()
     color_map = {meso: colors[i % len(colors)] for i, meso in enumerate(mesorregioes)}
@@ -203,7 +210,7 @@ if st.session_state["files_loaded"]:
     for _, layer in meso_layers.items():
         layer.add_to(mapa)
 
-    folium.LayerControl(collapsed=False).add_to(mapa)
+    folium.LayerControl(collapsed=True).add_to(mapa)
     folium_static(mapa)
 
     html_file = "mapa_interativo.html"
