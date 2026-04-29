@@ -148,7 +148,13 @@ if st.session_state["files_loaded"]:
     mean_lat = sum(coord[0] for coord in municipio_coords) / len(municipio_coords)
     mean_lon = sum(coord[1] for coord in municipio_coords) / len(municipio_coords)
 
-    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6)
+    # Evita bloqueio de tiles do OSM em arquivos HTML locais sem cabeçalho Referer.
+    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6, tiles=None)
+    folium.TileLayer(
+        tiles='CartoDB positron',
+        name='Mapa base',
+        control=False,
+    ).add_to(mapa)
     Fullscreen(position='topright').add_to(mapa)
 
     estado_layer = FeatureGroup(name='Contorno dos estados', show=True)
