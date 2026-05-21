@@ -149,7 +149,7 @@ if st.session_state["files_loaded"]:
     mean_lon = sum(coord[1] for coord in municipio_coords) / len(municipio_coords)
 
     # Evita bloqueio de tiles do OSM em arquivos HTML locais sem cabeçalho Referer.
-    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=6, tiles=None)
+    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=8, tiles=None)
     folium.TileLayer(
         tiles='CartoDB positron',
         name='Mapa base',
