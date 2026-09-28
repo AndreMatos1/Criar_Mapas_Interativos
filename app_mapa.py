@@ -1,6 +1,7 @@
 import json
 import os
 import unicodedata
+from urllib.parse import quote
 
 import folium
 import pandas as pd
@@ -148,13 +149,29 @@ if st.session_state["files_loaded"]:
     mean_lat = sum(coord[0] for coord in municipio_coords) / len(municipio_coords)
     mean_lon = sum(coord[1] for coord in municipio_coords) / len(municipio_coords)
 
-    # Evita bloqueio de tiles do OSM em arquivos HTML locais sem cabeçalho Referer.
-    mapa = folium.Map(location=[mean_lat, mean_lon], zoom_start=8, tiles=None)
-    folium.TileLayer(
-        tiles='CartoDB positron',
-        name='Mapa base',
-        control=False,
-    ).add_to(mapa)
+    # O fundo neutro não depende de tiles externos nem de uma API key.
+    mapa = folium.Map(
+        location=[mean_lat, mean_lon], zoom_start=8, tiles=None,
+        background_color='#f8fafc',
+    )
+    carto_api_key = os.environ.get('CARTO_API_KEY', '').strip()
+    if carto_api_key:
+        folium.TileLayer(
+            tiles=(
+                'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+                f'?key={quote(carto_api_key, safe="")}'
+            ),
+            attr=(
+                '&copy; <a href="https://www.openstreetmap.org/copyright">'
+                'OpenStreetMap</a> contributors &copy; '
+                '<a href="https://carto.com/attributions">CARTO</a>'
+            ),
+            name='Mapa base CARTO',
+            overlay=True,
+            control=True,
+        ).add_to(mapa)
+    else:
+        st.caption('Fundo neutro: municípios e regiões disponíveis sem chave de API.')
     Fullscreen(position='topright').add_to(mapa)
 
     estado_layer = FeatureGroup(name='Contorno dos estados', show=True)
