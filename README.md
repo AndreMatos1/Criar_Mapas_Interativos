@@ -39,8 +39,11 @@ a atribuição do provedor é mantida no mapa.
 O mapa abre enquadrando as 27 UFs, inclusive as que não aparecem na planilha.
 O mapa geográfico fica visível, sem uma camada cinza cobrindo o território.
 Os municípios das UFs carregadas
-mantêm linhas finas (0,35 px), enquanto as divisas estaduais e o contorno externo
-usam linhas escuras mais espessas (2,2 px), desenhadas acima das regiões coloridas.
+mantêm linhas finas (0,35 px). As UFs identificadas na planilha recebem bordas
+azuis espessas (3,5 px); as demais mantêm divisas discretas (1,2 px).
+As regiões coloridas aparecem automaticamente ao carregar a planilha e podem
+ser ocultadas individualmente pelo controle de camadas. O mapa geográfico
+permanece visível em todo o território, com as divisas acima das cores.
 Essa camada não intercepta o mouse, preservando os tooltips dos municípios.
 É possível alternar as divisas no controle de camadas; o contexto nacional
 permanece disponível. O mesmo desenho acompanha o HTML exportado.
