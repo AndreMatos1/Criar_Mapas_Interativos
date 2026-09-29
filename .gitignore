@@ -1,3 +1,4 @@
 .venv/
+.qa/
 __pycache__/
 mapa_interativo.html

@@ -12,6 +12,9 @@ imagens com essa mensagem. Não é um erro da planilha ou dos polígonos.
 Por padrão, em páginas HTTP/HTTPS o aplicativo usa **OpenStreetMap.Mapnik**, com
 cidades, estradas, rios e países vizinhos, sem solicitações à CARTO e sem chave.
 O controle de camadas também oferece Esri WorldTopoMap como alternativa.
+No Streamlit, o componente `st_folium` inicia explicitamente com Mapnik ativo.
+A escolha automática pela origem da página é aplicada somente à cópia exportada;
+ela não pode substituir Mapnik por Esri dentro do aplicativo.
 Os contornos dos municípios, as cores das regiões, os tooltips e os controles
 continuam disponíveis, tanto no aplicativo quanto no HTML baixado.
 

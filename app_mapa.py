@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import unicodedata
@@ -10,7 +11,7 @@ import streamlit as st
 from branca.element import MacroElement, Template
 from folium import FeatureGroup, GeoJsonTooltip
 from folium.plugins import Fullscreen
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium
 
 APP_DIR = Path(__file__).resolve().parent
 
@@ -160,7 +161,7 @@ if st.session_state["files_loaded"]:
         tiles='https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         name='OpenStreetMap.Mapnik', max_zoom=19,
-        overlay=False, control=True, show=False,
+        overlay=False, control=True, show=True,
         referrer_policy='strict-origin-when-cross-origin',
     ).add_to(mapa)
     esri_layer = folium.TileLayer(
@@ -184,7 +185,6 @@ if st.session_state["files_loaded"]:
     basemap_start.osm = osm_layer.get_name()
     basemap_start.esri = esri_layer.get_name()
     basemap_start.map_name = mapa.get_name()
-    basemap_start.add_to(mapa)
     carto_api_key = os.environ.get('CARTO_API_KEY', '').strip()
     if carto_api_key:
         folium.TileLayer(
@@ -277,10 +277,15 @@ if st.session_state["files_loaded"]:
                'duplo clique, o mapa Esri é usado automaticamente para evitar bloqueios de origem.')
 
     folium.LayerControl(collapsed=True).add_to(mapa)
-    folium_static(mapa)
+    # A seleção por origem pertence somente ao HTML exportado. No aplicativo,
+    # o componente st_folium é servido por HTTP e inicia explicitamente em Mapnik.
+    export_map = copy.deepcopy(mapa)
+    export_map._children[osm_layer.get_name()].show = False
+    basemap_start.add_to(export_map)
+    st_folium(mapa, height=500, use_container_width=True, returned_objects=[])
 
     html_file = "mapa_interativo.html"
-    mapa.save(html_file)
+    export_map.save(html_file)
 
     with open(html_file, 'rb') as f:
         st.download_button("Baixar Mapa em HTML", f, file_name=html_file, mime="text/html")
