@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -79,10 +80,25 @@ class MapBackgroundTest(unittest.TestCase):
         for uf in expected:
             self.assertIn(f'"uf": "{uf}"', html)
         self.assertIn('.fitBounds(', html)
-        self.assertIn('"weight": 2.2', html)
+        self.assertIn('"weight": 3.5', html)
+        self.assertIn('"weight": 1.2', html)
         self.assertIn('"fill": false', html)
         self.assertIn('divisas_estaduais', html)
         self.assertTrue("pointerEvents = 'none'" in html)
+
+    def test_regions_visible_on_load_and_only_input_state_highlighted(self):
+        html = self.render_map('')
+        group = re.search(r'"Regiao teste"\s*:\s*(feature_group_\w+)', html)
+        self.assertIsNotNone(group)
+        self.assertTrue(re.search(re.escape(group.group(1)) + r'\.addTo\(map_', html) is not None)
+        style = re.search(r'switch\(feature.properties.uf\)\s*\{(.*?)\n\s*\}', html, re.S)
+        self.assertIsNotNone(style)
+        cases = re.findall(r'case "([A-Z]{2})":', style.group(1))
+        self.assertEqual(len(cases), 26)
+        self.assertNotIn('SP', cases)
+        default = re.search(r'default:\s*return (\{[^}]+\});', style.group(1))
+        self.assertEqual(json.loads(default.group(1))['color'], '#1d4ed8')
+        self.assertEqual(json.loads(default.group(1))['weight'], 3.5)
 
 
 if __name__ == '__main__':

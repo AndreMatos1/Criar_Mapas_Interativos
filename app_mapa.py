@@ -202,7 +202,7 @@ if st.session_state["files_loaded"]:
     ]
     mesorregioes = df['Região'].unique()
     color_map = {meso: colors[i % len(colors)] for i, meso in enumerate(mesorregioes)}
-    meso_layers = {meso: FeatureGroup(name=meso, show=False) for meso in mesorregioes}
+    meso_layers = {meso: FeatureGroup(name=meso, show=True) for meso in mesorregioes}
 
     for feature in features:
         municipio_normalizado = feature['properties'].get('name_normalized', '')
@@ -237,12 +237,16 @@ if st.session_state["files_loaded"]:
         estados_brasil, name='Divisas estaduais',
         pane='divisas_estaduais', interactive=False,
         style_function=lambda x: {
-            'fill': False, 'color': '#334155', 'weight': 2.2, 'opacity': 1,
+            'fill': False,
+            'color': '#1d4ed8' if x['properties']['uf'] in estados_detectados else '#64748b',
+            'weight': 3.5 if x['properties']['uf'] in estados_detectados else 1.2,
+            'opacity': 1,
         },
     ).add_to(mapa)
     mapa.fit_bounds(divisas_layer.get_bounds(), padding=(15, 15))
-    st.caption('Mapa geográfico com cidades, estradas e rios; divisas estaduais em linha escura; '
-               'limites municipais em linha fina. Ative as regiões no controle de camadas.')
+    st.caption('Mapa completo ao fundo. UFs da planilha destacadas com borda azul espessa; '
+               'municípios coloridos por região. As demais UFs permanecem no mapa, '
+               'com divisas discretas. Use o controle de camadas para ocultar ou exibir regiões.')
 
     folium.LayerControl(collapsed=True).add_to(mapa)
     folium_static(mapa)
