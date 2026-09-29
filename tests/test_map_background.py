@@ -49,20 +49,26 @@ class MapBackgroundTest(unittest.TestCase):
         self.assertEqual(len(app.get('download_button')), 1)
         return html
 
-    def test_without_key_exports_polygons_without_tile_requests(self):
+    def test_without_key_exports_geographic_basemap_without_carto(self):
         html = self.render_map('')
         self.assertNotIn('cartocdn.com', html)
-        self.assertNotIn('L.tileLayer(', html)
+        self.assertIn('World_Topo_Map/MapServer/tile/', html)
+        self.assertEqual(html.count('L.tileLayer('), 1)
+        self.assertNotIn('brasil_fundo', html)
+        self.assertNotIn('#e2e8f0', html)
 
-    def test_blank_key_uses_neutral_background(self):
-        self.assertNotIn('L.tileLayer(', self.render_map('   '))
+    def test_blank_key_uses_geographic_basemap(self):
+        html = self.render_map('   ')
+        self.assertIn('World_Topo_Map/MapServer/tile/', html)
+        self.assertNotIn('cartocdn.com', html)
 
     def test_configured_key_is_encoded_and_layer_can_be_hidden(self):
         html = self.render_map('example&key=value')
         self.assertIn('?key=example%26key%3Dvalue', html)
         self.assertIn('Mapa base CARTO', html)
         self.assertIn('carto.com/attributions', html)
-        self.assertEqual(html.count('L.tileLayer('), 1)
+        self.assertEqual(html.count('L.tileLayer('), 2)
+        self.assertIn('Mapa geogr', html)
 
     def test_single_state_input_keeps_all_brazil_and_visible_borders(self):
         html = self.render_map('')

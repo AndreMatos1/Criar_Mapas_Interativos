@@ -150,11 +150,15 @@ if st.session_state["files_loaded"]:
         st.stop()
 
     estados_brasil = load_brazil_states()
-    # O fundo neutro não depende de tiles externos nem de uma API key.
+    # Mapa geográfico completo, inclusive fora das UFs presentes na planilha.
     mapa = folium.Map(
         location=[-14.2, -51.9], zoom_start=4, tiles=None,
         background_color='#f8fafc',
     )
+    folium.TileLayer(
+        tiles='Esri.WorldTopoMap', name='Mapa geográfico',
+        overlay=False, control=True, show=True,
+    ).add_to(mapa)
     carto_api_key = os.environ.get('CARTO_API_KEY', '').strip()
     if carto_api_key:
         folium.TileLayer(
@@ -168,33 +172,22 @@ if st.session_state["files_loaded"]:
                 '<a href="https://carto.com/attributions">CARTO</a>'
             ),
             name='Mapa base CARTO',
-            overlay=True,
+            overlay=False,
             control=True,
+            show=False,
         ).add_to(mapa)
-    else:
-        st.caption('Fundo neutro: municípios e regiões disponíveis sem chave de API.')
     Fullscreen(position='topright').add_to(mapa)
 
-    # O contexto nacional fica abaixo das regiões; as divisas, sempre acima.
-    folium.map.CustomPane('brasil_fundo', z_index=390, pointer_events=False).add_to(mapa)
+    # Divisas acima das regiões, sem cobrir o mapa geográfico nem os tooltips.
     folium.map.CustomPane('divisas_estaduais', z_index=450, pointer_events=False).add_to(mapa)
-    brasil_layer = folium.GeoJson(
-        estados_brasil, name='Brasil — todas as UFs', control=False,
-        pane='brasil_fundo', interactive=False,
-        style_function=lambda x: {
-            'fillColor': '#e2e8f0', 'fillOpacity': 0.45, 'weight': 0,
-        },
-    ).add_to(mapa)
-    mapa.fit_bounds(brasil_layer.get_bounds(), padding=(15, 15))
 
     estado_layer = FeatureGroup(name='Limites municipais das UFs da planilha', show=True)
     folium.GeoJson(
         municipios_geojson,
         style_function=lambda x: {
-            'fillColor': '#d1d5db',
+            'fill': False,
             'color': '#1f2937',
             'weight': 0.35,
-            'fillOpacity': 0.08,
         },
     ).add_to(estado_layer)
     estado_layer.add_to(mapa)
@@ -240,14 +233,15 @@ if st.session_state["files_loaded"]:
     for _, layer in meso_layers.items():
         layer.add_to(mapa)
 
-    folium.GeoJson(
-        estados_brasil, name='Divisas estaduais e contorno do Brasil',
+    divisas_layer = folium.GeoJson(
+        estados_brasil, name='Divisas estaduais',
         pane='divisas_estaduais', interactive=False,
         style_function=lambda x: {
             'fill': False, 'color': '#334155', 'weight': 2.2, 'opacity': 1,
         },
     ).add_to(mapa)
-    st.caption('Brasil completo em cinza; divisas estaduais em linha escura e espessa; '
+    mapa.fit_bounds(divisas_layer.get_bounds(), padding=(15, 15))
+    st.caption('Mapa geográfico com cidades, estradas e rios; divisas estaduais em linha escura; '
                'limites municipais em linha fina. Ative as regiões no controle de camadas.')
 
     folium.LayerControl(collapsed=True).add_to(mapa)
