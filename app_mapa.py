@@ -1,6 +1,7 @@
 import json
 import os
 import unicodedata
+from pathlib import Path
 from urllib.parse import quote
 
 import folium
@@ -9,6 +10,14 @@ import streamlit as st
 from folium import FeatureGroup, GeoJsonTooltip
 from folium.plugins import Fullscreen
 from streamlit_folium import folium_static
+
+APP_DIR = Path(__file__).resolve().parent
+
+
+@st.cache_data
+def load_brazil_states():
+    with (APP_DIR / 'data' / 'estados_brasil.geojson').open(encoding='utf-8') as source:
+        return json.load(source)
 
 UF_VALIDAS = {
     "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -47,7 +56,7 @@ def load_geojson_for_states(selected_states):
     missing_states = []
 
     for uf in selected_states:
-        json_path = f"Json_Polígonos_Geom_Cidades_Brasil/limites_mun_{uf}.json"
+        json_path = APP_DIR / 'Json_Polígonos_Geom_Cidades_Brasil' / f'limites_mun_{uf}.json'
         if not os.path.exists(json_path):
             missing_states.append(uf)
             continue
@@ -140,18 +149,10 @@ if st.session_state["files_loaded"]:
         st.error("Sem feições geográficas para renderizar o mapa.")
         st.stop()
 
-    municipio_coords = []
-    for feature in features:
-        coordinates = feature['geometry']['coordinates']
-        mean_lat, mean_lon = calculate_mean_coordinates(coordinates)
-        municipio_coords.append((mean_lat, mean_lon))
-
-    mean_lat = sum(coord[0] for coord in municipio_coords) / len(municipio_coords)
-    mean_lon = sum(coord[1] for coord in municipio_coords) / len(municipio_coords)
-
+    estados_brasil = load_brazil_states()
     # O fundo neutro não depende de tiles externos nem de uma API key.
     mapa = folium.Map(
-        location=[mean_lat, mean_lon], zoom_start=8, tiles=None,
+        location=[-14.2, -51.9], zoom_start=4, tiles=None,
         background_color='#f8fafc',
     )
     carto_api_key = os.environ.get('CARTO_API_KEY', '').strip()
@@ -174,7 +175,19 @@ if st.session_state["files_loaded"]:
         st.caption('Fundo neutro: municípios e regiões disponíveis sem chave de API.')
     Fullscreen(position='topright').add_to(mapa)
 
-    estado_layer = FeatureGroup(name='Contorno dos estados', show=True)
+    # O contexto nacional fica abaixo das regiões; as divisas, sempre acima.
+    folium.map.CustomPane('brasil_fundo', z_index=390, pointer_events=False).add_to(mapa)
+    folium.map.CustomPane('divisas_estaduais', z_index=450, pointer_events=False).add_to(mapa)
+    brasil_layer = folium.GeoJson(
+        estados_brasil, name='Brasil — todas as UFs', control=False,
+        pane='brasil_fundo', interactive=False,
+        style_function=lambda x: {
+            'fillColor': '#e2e8f0', 'fillOpacity': 0.45, 'weight': 0,
+        },
+    ).add_to(mapa)
+    mapa.fit_bounds(brasil_layer.get_bounds(), padding=(15, 15))
+
+    estado_layer = FeatureGroup(name='Limites municipais das UFs da planilha', show=True)
     folium.GeoJson(
         municipios_geojson,
         style_function=lambda x: {
@@ -226,6 +239,16 @@ if st.session_state["files_loaded"]:
 
     for _, layer in meso_layers.items():
         layer.add_to(mapa)
+
+    folium.GeoJson(
+        estados_brasil, name='Divisas estaduais e contorno do Brasil',
+        pane='divisas_estaduais', interactive=False,
+        style_function=lambda x: {
+            'fill': False, 'color': '#334155', 'weight': 2.2, 'opacity': 1,
+        },
+    ).add_to(mapa)
+    st.caption('Brasil completo em cinza; divisas estaduais em linha escura e espessa; '
+               'limites municipais em linha fina. Ative as regiões no controle de camadas.')
 
     folium.LayerControl(collapsed=True).add_to(mapa)
     folium_static(mapa)

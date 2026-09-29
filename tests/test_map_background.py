@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -62,6 +63,20 @@ class MapBackgroundTest(unittest.TestCase):
         self.assertIn('Mapa base CARTO', html)
         self.assertIn('carto.com/attributions', html)
         self.assertEqual(html.count('L.tileLayer('), 1)
+
+    def test_single_state_input_keeps_all_brazil_and_visible_borders(self):
+        html = self.render_map('')
+        data = json.loads((APP.parent / 'data' / 'estados_brasil.geojson').read_text(encoding='utf-8'))
+        expected = set('AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split())
+        self.assertEqual({f['properties']['uf'] for f in data['features']}, expected)
+        self.assertEqual(len(data['features']), 27)
+        for uf in expected:
+            self.assertIn(f'"uf": "{uf}"', html)
+        self.assertIn('.fitBounds(', html)
+        self.assertIn('"weight": 2.2', html)
+        self.assertIn('"fill": false', html)
+        self.assertIn('divisas_estaduais', html)
+        self.assertTrue("pointerEvents = 'none'" in html)
 
 
 if __name__ == '__main__':

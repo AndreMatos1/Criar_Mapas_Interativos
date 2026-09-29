@@ -30,3 +30,21 @@ variável e reinicie o aplicativo, ou desative “Mapa base CARTO” no controle
 Gere e baixe novamente os mapas antigos para incorporar a correção. O HTML ainda
 precisa de internet para carregar as bibliotecas JavaScript e CSS do Folium;
 o fundo neutro elimina apenas a dependência de imagens do mapa base.
+
+### Brasil completo e divisas estaduais
+
+O mapa abre enquadrando as 27 UFs, inclusive as que não aparecem na planilha.
+A base nacional tem preenchimento cinza suave. Os municípios das UFs carregadas
+mantêm linhas finas (0,35 px), enquanto as divisas estaduais e o contorno externo
+usam linhas escuras mais espessas (2,2 px), desenhadas acima das regiões coloridas.
+Essa camada não intercepta o mouse, preservando os tooltips dos municípios.
+É possível alternar as divisas no controle de camadas; o contexto nacional
+permanece disponível. O mesmo desenho acompanha o HTML exportado.
+
+A base `data/estados_brasil.geojson` é derivada da união dos municípios já
+incluídos neste repositório, sem simplificação das coordenadas. Não há chamadas
+a serviços geográficos durante a execução. Para regenerar a base após atualizar
+os municípios, instale `shapely` e execute `python scripts/gerar_estados.py`.
+Shapely é necessário apenas nessa regeneração, não na hospedagem do aplicativo.
+
+Testes: `python -m unittest discover -s tests -v`.
