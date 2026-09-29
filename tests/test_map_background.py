@@ -8,6 +8,8 @@ import unittest
 from unittest.mock import patch
 
 import pandas as pd
+import folium
+from streamlit_folium import st_folium
 from streamlit.testing.v1 import AppTest
 
 
@@ -38,8 +40,12 @@ class MapBackgroundTest(unittest.TestCase):
             previous = os.getcwd()
             try:
                 os.chdir(folder)
-                with patch.dict(os.environ, {'CARTO_API_KEY': key}):
+                with patch.dict(os.environ, {'CARTO_API_KEY': key}), patch(
+                    'streamlit_folium.st_folium', wraps=st_folium,
+                ) as displayed:
                     app.run(timeout=30)
+                self.assertEqual(displayed.call_count, 1)
+                self.displayed_map = displayed.call_args.args[0]
                 self.assertEqual(len(app.exception), 0, str(app.exception))
                 html = Path('mapa_interativo.html').read_text(encoding='utf-8')
             finally:
@@ -109,6 +115,13 @@ class MapBackgroundTest(unittest.TestCase):
         self.assertIn('window.location.protocol', html)
         self.assertIn('document.referrer', html)
         self.assertTrue(re.search(r'if \(hasWebOrigin\)\s*\{\s*tile_layer_\w+\.addTo\(map_\w+\);\s*\} else \{\s*tile_layer_\w+\.addTo', html) is not None)
+
+    def test_streamlit_always_starts_mapnik_without_export_fallback(self):
+        self.render_map('')
+        layers = [item for item in self.displayed_map._children.values()
+                  if isinstance(item, folium.TileLayer)]
+        self.assertEqual([item.layer_name for item in layers if item.show], ['OpenStreetMap.Mapnik'])
+        self.assertNotIn('hasWebOrigin', self.displayed_map.get_root().render())
 
 
 if __name__ == '__main__':
