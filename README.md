@@ -9,8 +9,9 @@ O provedor CARTO passou a exigir uma chave para seus mapas base. O antigo
 `CartoDB positron` era solicitado sem chave, por isso o próprio serviço devolvia
 imagens com essa mensagem. Não é um erro da planilha ou dos polígonos.
 
-Por padrão, o aplicativo usa o mapa topográfico Esri WorldTopoMap, com cidades,
-estradas, rios, relevo e países vizinhos, sem solicitações à CARTO e sem chave.
+Por padrão, em páginas HTTP/HTTPS o aplicativo usa **OpenStreetMap.Mapnik**, com
+cidades, estradas, rios e países vizinhos, sem solicitações à CARTO e sem chave.
+O controle de camadas também oferece Esri WorldTopoMap como alternativa.
 Os contornos dos municípios, as cores das regiões, os tooltips e os controles
 continuam disponíveis, tanto no aplicativo quanto no HTML baixado.
 
@@ -26,13 +27,28 @@ streamlit run app_mapa.py
 A chave é incluída nas URLs públicas do mapa e no HTML exportado; use uma chave
 destinada a mapas no navegador, com as restrições e limites adequados no provedor.
 Uma chave inválida pode voltar a exibir a marca da CARTO. Nesse caso, remova a
-variável e reinicie o aplicativo, ou selecione “Mapa geográfico” no controle de camadas.
+variável e reinicie o aplicativo, ou selecione “OpenStreetMap.Mapnik” no controle de camadas.
 O fundo CARTO é uma alternativa opcional, inicialmente desativada.
 
 Gere e baixe novamente os mapas antigos para incorporar a correção. O HTML ainda
 precisa de internet para carregar as imagens do mapa e as bibliotecas JavaScript
-e CSS do Folium. A disponibilidade do fundo depende do serviço externo da Esri;
-a atribuição do provedor é mantida no mapa.
+e CSS do Folium. A disponibilidade do fundo depende dos serviços externos;
+a atribuição de cada provedor é mantida no mapa.
+
+### OpenStreetMap no HTML baixado
+
+O servidor `tile.openstreetmap.org` exige um Referer HTTP válido nas páginas web.
+Um HTML aberto por duplo clique (`file://`) não fornece essa origem, então o
+aplicativo seleciona automaticamente Esri nesse contexto, antes de pedir tiles
+ao OpenStreetMap. OSM continua disponível para páginas servidas por HTTP/HTTPS,
+inclusive o HTML exportado quando hospedado em um servidor web.
+Iframes sem origem web identificável também usam a alternativa Esri.
+
+Para visualizar um HTML local com Mapnik, na pasta que contém apenas os arquivos
+que deseja servir, execute `python -m http.server 8000 --bind 127.0.0.1` e abra
+`http://localhost:8000/mapa_interativo.html` no navegador. Encerre com Ctrl+C.
+Não há download antecipado de tiles nem suporte a mapas offline.
+Política do provedor: https://operations.osmfoundation.org/policies/tiles/.
 
 ### Brasil completo e divisas estaduais
 
@@ -50,7 +66,7 @@ permanece disponível. O mesmo desenho acompanha o HTML exportado.
 
 A base `data/estados_brasil.geojson` é derivada da união dos municípios já
 incluídos neste repositório, sem simplificação das coordenadas. As divisas são
-locais; as imagens de fundo são carregadas da Esri. Para regenerar a base após atualizar
+locais; as imagens de fundo são carregadas do provedor escolhido. Para regenerar a base após atualizar
 os municípios, instale `shapely` e execute `python scripts/gerar_estados.py`.
 Shapely é necessário apenas nessa regeneração, não na hospedagem do aplicativo.
 

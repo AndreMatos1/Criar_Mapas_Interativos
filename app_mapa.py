@@ -7,6 +7,7 @@ from urllib.parse import quote
 import folium
 import pandas as pd
 import streamlit as st
+from branca.element import MacroElement, Template
 from folium import FeatureGroup, GeoJsonTooltip
 from folium.plugins import Fullscreen
 from streamlit_folium import folium_static
@@ -155,10 +156,35 @@ if st.session_state["files_loaded"]:
         location=[-14.2, -51.9], zoom_start=4, tiles=None,
         background_color='#f8fafc',
     )
-    folium.TileLayer(
-        tiles='Esri.WorldTopoMap', name='Mapa geográfico',
-        overlay=False, control=True, show=True,
+    osm_layer = folium.TileLayer(
+        tiles='https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        name='OpenStreetMap.Mapnik', max_zoom=19,
+        overlay=False, control=True, show=False,
+        referrer_policy='strict-origin-when-cross-origin',
     ).add_to(mapa)
+    esri_layer = folium.TileLayer(
+        tiles='Esri.WorldTopoMap', name='Mapa geográfico Esri (alternativa)',
+        overlay=False, control=True, show=False,
+    ).add_to(mapa)
+    # file:// não envia Referer HTTP. Iframes srcdoc podem herdar a origem da página.
+    basemap_start = MacroElement()
+    basemap_start._template = Template('''
+        {% macro script(this, kwargs) %}
+        var hasWebOrigin = /^https?:$/.test(window.location.protocol) ||
+            (window.location.protocol === 'about:' && /^https?:\\/\\//.test(document.referrer));
+        if (hasWebOrigin) {
+            {{ this.osm }}.addTo({{ this.map_name }});
+        } else {
+            {{ this.esri }}.addTo({{ this.map_name }});
+            {{ this.map_name }}.removeLayer({{ this.osm }});
+        }
+        {% endmacro %}
+    ''')
+    basemap_start.osm = osm_layer.get_name()
+    basemap_start.esri = esri_layer.get_name()
+    basemap_start.map_name = mapa.get_name()
+    basemap_start.add_to(mapa)
     carto_api_key = os.environ.get('CARTO_API_KEY', '').strip()
     if carto_api_key:
         folium.TileLayer(
@@ -247,6 +273,8 @@ if st.session_state["files_loaded"]:
     st.caption('Mapa completo ao fundo. UFs da planilha destacadas com borda azul espessa; '
                'municípios coloridos por região. As demais UFs permanecem no mapa, '
                'com divisas discretas. Use o controle de camadas para ocultar ou exibir regiões.')
+    st.caption('OpenStreetMap.Mapnik é o fundo padrão em páginas web. No HTML aberto por '
+               'duplo clique, o mapa Esri é usado automaticamente para evitar bloqueios de origem.')
 
     folium.LayerControl(collapsed=True).add_to(mapa)
     folium_static(mapa)

@@ -54,7 +54,8 @@ class MapBackgroundTest(unittest.TestCase):
         html = self.render_map('')
         self.assertNotIn('cartocdn.com', html)
         self.assertIn('World_Topo_Map/MapServer/tile/', html)
-        self.assertEqual(html.count('L.tileLayer('), 1)
+        self.assertEqual(html.count('L.tileLayer('), 2)
+        self.assertIn('https://tile.openstreetmap.org/{z}/{x}/{y}.png', html)
         self.assertNotIn('brasil_fundo', html)
         self.assertNotIn('#e2e8f0', html)
 
@@ -68,7 +69,7 @@ class MapBackgroundTest(unittest.TestCase):
         self.assertIn('?key=example%26key%3Dvalue', html)
         self.assertIn('Mapa base CARTO', html)
         self.assertIn('carto.com/attributions', html)
-        self.assertEqual(html.count('L.tileLayer('), 2)
+        self.assertEqual(html.count('L.tileLayer('), 3)
         self.assertIn('Mapa geogr', html)
 
     def test_single_state_input_keeps_all_brazil_and_visible_borders(self):
@@ -99,6 +100,15 @@ class MapBackgroundTest(unittest.TestCase):
         default = re.search(r'default:\s*return (\{[^}]+\});', style.group(1))
         self.assertEqual(json.loads(default.group(1))['color'], '#1d4ed8')
         self.assertEqual(json.loads(default.group(1))['weight'], 3.5)
+
+    def test_mapnik_has_attribution_and_local_html_fallback(self):
+        html = self.render_map('')
+        self.assertIn('OpenStreetMap.Mapnik', html)
+        self.assertIn('www.openstreetmap.org/copyright', html)
+        self.assertIn('"referrerPolicy": "strict-origin-when-cross-origin"', html)
+        self.assertIn('window.location.protocol', html)
+        self.assertIn('document.referrer', html)
+        self.assertTrue(re.search(r'if \(hasWebOrigin\)\s*\{\s*tile_layer_\w+\.addTo\(map_\w+\);\s*\} else \{\s*tile_layer_\w+\.addTo', html) is not None)
 
 
 if __name__ == '__main__':
