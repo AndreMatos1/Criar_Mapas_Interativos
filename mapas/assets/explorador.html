@@ -1,0 +1,52 @@
+<div id="territorios-ui" role="region" aria-label="Explorador de territórios">
+  <header id="map-header" class="map-header">
+    <div><span class="eyebrow">EXPLORADOR TERRITORIAL</span><h1 id="map-title"></h1></div>
+    <div class="header-actions">
+      <button id="presentation" aria-pressed="false">Apresentação</button>
+      <button id="fullscreen">Tela cheia</button>
+    </div>
+  </header>
+  <aside id="map-panel" class="map-panel" aria-label="Filtros e resumo">
+    <button id="panel-toggle" class="panel-toggle" aria-expanded="true" aria-controls="panel-content">Recolher painel</button>
+    <div id="panel-content">
+      <div class="panel-heading"><h2>Sua cobertura</h2><span id="filter-badge">Base completa</span></div>
+      <div id="stats" class="map-stats" aria-live="polite"></div>
+      <div class="map-editing">
+        <label for="state-filter">Estado</label><select id="state-filter"><option value="">Todos os estados</option></select>
+        <label for="region-filter">Região</label><select id="region-filter"><option value="">Todas as regiões</option></select>
+        <label for="city-search">Localizar município</label>
+        <input id="city-search" type="search" placeholder="Nome da cidade ou UF" autocomplete="off" aria-controls="search-results">
+        <ul id="search-results" class="search-results" aria-label="Municípios encontrados" hidden></ul>
+        <p id="search-status" class="small" aria-live="polite" hidden></p>
+      </div>
+      <div class="territory-actions"><button id="show-base">Ver minha base</button><button id="show-brazil">Ver Brasil</button></div>
+      <div class="legend-heading"><h2>Regiões</h2><button id="clear-filters" class="text-button">Limpar filtros</button></div>
+      <p class="small">Clique para destacar uma região. Os números contam municípios.</p>
+      <div id="region-legend" class="region-legend"></div>
+      <details class="map-editing"><summary>Visualização</summary>
+        <label for="view-mode">Estilo do mapa</label>
+        <select id="view-mode"><option value="territorial">Territorial · fundo limpo</option><option value="geographic">Geográfico · ruas e referências</option></select>
+        <div id="basemap-settings" hidden><label for="basemap">Mapa geográfico</label>
+          <select id="basemap"><option value="auto">Automático · Mapnik / Esri</option><option value="osm">OpenStreetMap.Mapnik</option><option value="esri">Esri WorldTopoMap</option></select>
+          <p class="small">O fundo geográfico precisa de internet.</p>
+        </div>
+        <label class="check"><input id="show-names" type="checkbox"> Nomes dos municípios</label>
+        <label id="boundaries-setting" class="check" hidden><input id="show-boundaries" type="checkbox"> Limites municipais das UFs da base</label>
+        <label id="pdvs-setting" class="check" hidden><input id="show-pdvs" type="checkbox" checked> Quantidades de PDVs</label>
+        <p id="pdvs-note" class="small" hidden>PDVs agregados por município. Os marcadores usam um ponto interior do território, não endereços de estabelecimentos.</p>
+      </details>
+      <p class="map-credit">Desenvolvido por André Matos · Limites municipais e estaduais da base do projeto.</p>
+    </div>
+  </aside>
+  <nav id="map-breadcrumb" class="map-breadcrumb" aria-label="Navegação do território"></nav>
+  <aside id="detail-panel" class="detail-panel" aria-label="Detalhes do município" hidden>
+    <button id="close-detail" class="close-detail" aria-label="Fechar detalhes">×</button>
+    <span class="eyebrow">MUNICÍPIO SELECIONADO</span><h2 id="detail-title"></h2>
+    <dl id="detail-fields"></dl><button id="focus-city">Aproximar município</button>
+  </aside>
+  <div id="map-message" class="map-message" role="status" hidden></div>
+  <div class="map-controls" role="group" aria-label="Controles do mapa">
+    <button id="zoom-in" aria-label="Aproximar">+</button><button id="zoom-out" aria-label="Afastar">−</button>
+    <button id="recenter" aria-label="Centralizar na base">◎</button>
+  </div>
+</div>
