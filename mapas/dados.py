@@ -12,8 +12,8 @@ from shapely.geometry import shape
 
 
 UF_VALIDAS = set('AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split())
-CORES = ('#287f9e', '#5b8e55', '#b47728', '#8d65ac', '#bd5c68', '#33877e',
-         '#6875bc', '#936c4c', '#6c8862', '#a06097', '#497997', '#9b7d38')
+CORES = ('#1769aa', '#16865a', '#d67b13', '#8454c0', '#cc455c', '#008e9b',
+         '#4357bc', '#a35725', '#638a20', '#b23a91', '#087ca7', '#b18a10')
 
 
 def texto(value):

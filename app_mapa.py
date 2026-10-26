@@ -34,15 +34,14 @@ def carregar_estados():
 @st.cache_data(show_spinner=False)
 def planilha_modelo():
     buffer = BytesIO()
-    pd.DataFrame([
-        {'Cidade': 'Bom Despacho', 'UF': 'MG', 'Região': 'Centro-Oeste MG', 'PDVs': 9},
-        {'Cidade': 'Divinópolis', 'UF': 'MG', 'Região': 'Centro-Oeste MG', 'PDVs': 12},
-        {'Cidade': 'Itaúna', 'UF': 'MG', 'Região': 'Centro-Oeste MG', 'PDVs': 4},
-        {'Cidade': 'Piumhi', 'UF': 'MG', 'Região': 'Canastra', 'PDVs': 7},
-        {'Cidade': 'São Roque de Minas', 'UF': 'MG', 'Região': 'Canastra', 'PDVs': 2},
-        {'Cidade': 'Vargem Bonita', 'UF': 'MG', 'Região': 'Canastra', 'PDVs': 0},
-    ]).to_excel(buffer, index=False)
+    pd.DataFrame(columns=['Cidade', 'UF', 'Região', 'PDVs']).to_excel(buffer, index=False)
     return buffer.getvalue()
+
+
+def ao_alterar_arquivo():
+    if st.session_state.get('arquivo_excel') is None:
+        for chave in ('base_df', 'base_nome', 'arquivo_processado'):
+            st.session_state.pop(chave, None)
 
 
 st.markdown('''<style>
@@ -54,16 +53,11 @@ st.markdown('''<style>
 with st.sidebar:
     st.header('Preparar mapa')
     st.caption('Carregue sua lista de cidades, estados e regiões comerciais.')
-    arquivo = st.file_uploader('Planilha Excel', type=['xlsx'], key='arquivo_excel')
-    st.download_button('Baixar planilha de exemplo', planilha_modelo(),
+    arquivo = st.file_uploader('Planilha Excel', type=['xlsx'], key='arquivo_excel', on_change=ao_alterar_arquivo)
+    st.download_button('Baixar modelo de planilha', planilha_modelo(),
                        file_name='modelo_territorios.xlsx',
                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     st.caption('Obrigatórias: Cidade, UF e Região. PDVs é uma coluna opcional.')
-    if st.button('Explorar exemplo', width='stretch'):
-        st.session_state['base_df'] = pd.read_excel(BytesIO(planilha_modelo()))
-        st.session_state['base_nome'] = 'Exemplo · Minas Gerais'
-        # Não reimporta um arquivo anterior enquanto o usuário explora o exemplo.
-        st.session_state['arquivo_processado'] = hashlib.sha256(arquivo.getvalue()).hexdigest() if arquivo else None
     titulo = st.text_input('Título do mapa', value='Mapa de territórios', max_chars=100)
     apresentacao = st.toggle('Abrir em modo apresentação', value=False,
                              help='Oculta busca e configurações dentro do mapa. Resumo e legenda continuam visíveis.')
@@ -73,7 +67,7 @@ with st.sidebar:
 
 if arquivo is not None:
     digest = hashlib.sha256(arquivo.getvalue()).hexdigest()
-    if digest != st.session_state.get('arquivo_processado'):
+    if digest != st.session_state.get('arquivo_processado') or st.session_state.get('base_nome') != arquivo.name:
         try:
             novo_df = pd.read_excel(BytesIO(arquivo.getvalue()))
             novo_df.columns = [texto(c) for c in novo_df.columns]
@@ -87,8 +81,12 @@ if arquivo is not None:
 st.title('Mapas Interativos')
 st.caption('Explore sua cobertura comercial por estado, região e município.')
 
+# Recupera sessões que ainda estavam na antiga demonstração, sem arquivo real.
+if arquivo is None and st.session_state.get('base_nome') == 'Exemplo · Minas Gerais':
+    ao_alterar_arquivo()
+
 if 'base_df' not in st.session_state:
-    st.info('Carregue uma planilha pela lateral ou use “Explorar exemplo” para conhecer a visualização.')
+    st.info('Carregue sua planilha pela lateral para visualizar todas as regiões do arquivo.')
     st.markdown('**Da planilha para a exploração:** importe sua base, confira as pendências e navegue pelo mapa. '
                 'Você pode buscar cidades, destacar regiões, consultar detalhes e baixar o HTML interativo.')
     st.stop()

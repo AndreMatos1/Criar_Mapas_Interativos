@@ -107,6 +107,29 @@ class InteracaoTest(unittest.TestCase):
         self.page.locator('#show-pdvs').uncheck()
         self.assertEqual(self.page.locator('.pdv-bubble').count(), 0)
 
+    def test_hover_relief_clears_without_changing_filters_or_counts(self):
+        self.page.locator('#state-filter').select_option('MG')
+        self.page.locator('#region-filter').select_option('Centro-Oeste')
+        before = self.counts()
+        marker = self.page.locator('.pdv-bubble').filter(has_text='12')
+        marker.hover()
+        face = self.page.locator('.territory-face.is-hovered')
+        self.assertEqual(face.get_attribute('data-territory-id'), '3122306')
+        self.assertNotEqual(face.evaluate('el => getComputedStyle(el).filter'), 'none')
+        # Sai do marcador para o interior do polígono: testa o hover do mapa.
+        box = marker.bounding_box()
+        self.page.mouse.move(box['x'] + box['width'] + 20, box['y'] + box['height']/2)
+        self.assertEqual(face.get_attribute('data-territory-id'), '3122306')
+        self.assertEqual(self.counts(), before)
+        self.page.locator('#presentation').hover()
+        self.assertEqual(self.page.locator('.territory-face').count(), 0)
+        marker.click()
+        self.page.locator('#presentation').hover()
+        self.assertEqual(self.page.locator('.territory-face').count(), 1)
+        self.page.locator('#clear-filters').click()
+        self.assertEqual(self.counts(), ['7', '3', '2', '34'])
+        self.assertEqual(self.page.locator('.territory-face').count(), 0)
+
     def test_presentation_and_mobile_controls(self):
         self.page.locator('#presentation').click()
         self.assertTrue(self.page.locator('#city-search').is_hidden())

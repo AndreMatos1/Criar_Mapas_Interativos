@@ -13,7 +13,7 @@ pip install -r requirements.txt
 streamlit run app_mapa.py
 ```
 
-Na lateral, carregue um Excel `.xlsx` ou clique em **Explorar exemplo**. O botão **Baixar planilha de exemplo** fornece o modelo de importação.
+Na lateral, carregue seu Excel `.xlsx`. O botão **Baixar modelo de planilha** fornece somente os cabeçalhos para preenchimento; não carrega nem substitui sua base. Ao remover o arquivo no campo de upload, a aplicação volta à tela inicial.
 
 ## Planilha de entrada
 
@@ -44,7 +44,8 @@ Quando a coluna de PDVs existe, uma célula vazia significa **não informado**, 
 
 - **Estado e Região:** filtram o resumo e destacam os territórios selecionados. As demais cidades da base ficam discretas como contexto.
 - **Busca:** localiza cidades de toda a base, inclusive fora do filtro atual; aceita nomes sem acentos. Enter seleciona o primeiro resultado e Escape limpa a busca.
-- **Legenda:** mostra quantos municípios pertencem a cada região. Clique para destacar uma região; clique novamente para remover esse filtro.
+- **Legenda:** mostra quantos municípios pertencem a cada região. Clique para destacar uma região; clique novamente para remover esse filtro. **Mostrar todas as regiões** limpa os filtros e retorna ao enquadramento da base completa do arquivo.
+- **Contraste e relevo:** cores mais vivas, bordas claras e destaque com lateral escura e sombra ao passar o mouse sobre um território. O território selecionado mantém um relevo discreto. Os efeitos são visuais, sem alterar coordenadas nem áreas de clique.
 - **Seleção:** clique no município ou no marcador para consultar cidade, UF, região, código IBGE e PDVs, se informados.
 - **Navegação:** use o caminho Brasil → UF → Região → Município, os botões Ver minha base / Ver Brasil e os controles de zoom.
 - **Cores:** atribuídas à base completa e mantidas ao filtrar ou reordenar a mesma planilha. Regiões com grafias equivalentes são unificadas; até 12 regiões recebem cores distintas da paleta, com variações adicionais para bases maiores. Alterar a composição da base pode reorganizar cores para evitar repetições.
