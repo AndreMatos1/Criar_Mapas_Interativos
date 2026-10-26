@@ -130,6 +130,34 @@ class InteracaoTest(unittest.TestCase):
         self.assertEqual(self.counts(), ['7', '3', '2', '34'])
         self.assertEqual(self.page.locator('.territory-face').count(), 0)
 
+    def test_hover_label_is_compact_and_below_right_of_cursor(self):
+        self.page.locator('#region-filter').select_option('Centro-Oeste')
+        marker = self.page.locator('.pdv-bubble').filter(has_text='12')
+        marker.hover()
+        position = marker.bounding_box()
+        tooltip = self.page.locator('.territory-hover-tooltip:visible').last
+        bounds = tooltip.bounding_box()
+        self.assertGreaterEqual(bounds['x'], position['x'] + position['width']/2 + 18)
+        self.assertGreaterEqual(bounds['y'], position['y'] + position['height']/2 + 18)
+        self.assertLessEqual(bounds['width'], 220)
+        self.assertLessEqual(bounds['height'], 60)
+        self.assertEqual(self.page.locator('.territory-face.is-hovered').count(), 1)
+        # Perto da borda inferior direita, o rótulo deve inverter e continuar visível.
+        center = {'x': position['x'] + position['width']/2, 'y': position['y'] + position['height']/2}
+        map_id = self.page.locator('.folium-map').get_attribute('id')
+        self.page.evaluate('''({id, x, y}) => {
+            const map = window[id], size = map.getSize();
+            map.panBy([x - (size.x - 100), y - (size.y - 40)], {animate: false});
+            return new Promise(requestAnimationFrame);
+        }''', {'id': map_id, **center})
+        marker.hover()
+        position = marker.bounding_box()
+        bounds = self.page.locator('.territory-hover-tooltip:visible').last.bounding_box()
+        self.assertLessEqual(bounds['x'] + bounds['width'], position['x'] + position['width']/2 - 18)
+        self.assertLessEqual(bounds['y'] + bounds['height'], position['y'] + position['height']/2 - 18)
+        self.assertGreaterEqual(bounds['x'], 0)
+        self.assertGreaterEqual(bounds['y'], 0)
+
     def test_presentation_and_mobile_controls(self):
         self.page.locator('#presentation').click()
         self.assertTrue(self.page.locator('#city-search').is_hidden())

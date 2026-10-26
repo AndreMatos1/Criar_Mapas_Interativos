@@ -27,6 +27,27 @@ function node(tag, text, className) {
 function button(text, action, className) {
   const b = node('button', text, className); b.type = 'button'; b.onclick = action; return b;
 }
+function bindTerritoryTooltip(layer, content) {
+  layer.bindTooltip(content, {sticky: true, direction: 'right', offset: [24, 44],
+    className: 'territory-hover-tooltip', opacity: .98});
+  layer.on('tooltipopen mousemove', () => {
+    const tooltip = layer.getTooltip();
+    if (!tooltip.isOpen()) return;
+    const element = tooltip.getElement(), size = map.getSize();
+    const point = map.latLngToContainerPoint(tooltip.getLatLng());
+    const width = element.offsetWidth, height = element.offsetHeight, gap = 24;
+    // A posição preferencial é abaixo e à direita, fora do território sob o cursor.
+    // Nas bordas, inverte apenas a direção necessária para manter o rótulo legível.
+    const right = point.x + gap + width + 10 <= size.x;
+    const below = point.y + gap + height + 10 <= size.y;
+    const direction = right ? 'right' : 'left';
+    const offset = L.point(right ? gap : -gap, below ? gap + height/2 : -gap - height/2);
+    const previous = L.point(tooltip.options.offset);
+    if (tooltip.options.direction !== direction || !previous.equals(offset)) {
+      tooltip.options.direction = direction; tooltip.options.offset = offset; tooltip.update();
+    }
+  });
+}
 function matches(p) {
   return (!selectedState || p.uf === selectedState) && (!selectedRegion || p.regiao === selectedRegion);
 }
@@ -165,7 +186,7 @@ function showCity(id) {
 // Uma coleção por camada, em vez de milhares de objetos Folium individuais.
 const stateContext = L.geoJSON(states, {style: styleState, onEachFeature: (f, layer) => {
   const uf = f.properties.uf; stateLayers.set(uf, layer);
-  layer.bindTooltip(node('span', uf), {sticky: true});
+  bindTerritoryTooltip(layer, node('span', uf));
   layer.on('click', () => setFilters(uf, ''));
   layer.on('mouseover', () => hoverTerritory(f));
   layer.on('mouseout', () => leaveTerritory(f));
@@ -175,7 +196,7 @@ const municipalities = L.geoJSON(features, {style: styleCity, onEachFeature: (f,
   const tooltip = node('div', undefined, 'map-tooltip');
   tooltip.append(node('strong', p.name + ' · ' + p.uf), node('span', 'Região: ' + p.regiao));
   if (config.temPdvs) tooltip.append(node('div', p.pdvs === null ? 'PDVs não informados' : fmt(p.pdvs) + ' PDVs'));
-  layer.bindTooltip(tooltip, {sticky: true});
+  bindTerritoryTooltip(layer, tooltip);
   layer.on('click', () => showCity(p.id));
   layer.on('mouseover', () => hoverTerritory(f));
   layer.on('mouseout', () => leaveTerritory(f));
@@ -198,7 +219,7 @@ function renderMapAnnotations() {
       const bubble = node('div', fmt(p.pdvs), 'pdv-bubble'); bubble.style.fontSize = (size < 18 ? 8 : 10) + 'px';
       const marker = L.marker(point, {icon: L.divIcon({className: 'pdv-icon', html: bubble,
         iconSize: [size, size], iconAnchor: [size/2, size/2]})}).addTo(pdvMarkers);
-      marker.bindTooltip(node('span', p.name + ': ' + fmt(p.pdvs) + ' PDVs'));
+      bindTerritoryTooltip(marker, node('span', p.name + ': ' + fmt(p.pdvs) + ' PDVs'));
       marker.on('click', () => showCity(p.id));
       marker.on('mouseover', () => hoverTerritory(f));
       marker.on('mouseout', () => leaveTerritory(f));
