@@ -1,127 +1,91 @@
-import copy
+"""Contrato do HTML exportado, fundos e estado inicial do aplicativo."""
 import json
 import os
-import re
 from pathlib import Path
-import tempfile
 import unittest
 from unittest.mock import patch
 
 import pandas as pd
-import folium
-from streamlit_folium import st_folium
 from streamlit.testing.v1 import AppTest
 
+from mapas.dados import preparar_dados
+from mapas.visualizacao import criar_mapa, exportar_html
+from test_dados import GEO
 
-APP = Path(__file__).resolve().parents[1] / 'app_mapa.py'
-FEATURE = {
-    'type': 'Feature',
-    'properties': {'name': 'Teste', 'name_normalized': 'teste', 'uf': 'SP'},
-    'geometry': {
-        'type': 'Polygon',
-        'coordinates': [[[-47, -23], [-46, -23], [-46, -22], [-47, -23]]],
-    },
-}
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class MapBackgroundTest(unittest.TestCase):
-    def render_map(self, key):
-        app = AppTest.from_file(str(APP))
-        app.session_state['files_loaded'] = True
-        app.session_state['estados_detectados'] = ['SP']
-        app.session_state['df'] = pd.DataFrame([{
-            'Cidade': 'Teste', 'Cidade_normalizada': 'teste',
-            'UF': 'SP', 'Região': 'Regiao teste',
-        }])
-        app.session_state['municipios_geojson'] = {
-            'type': 'FeatureCollection', 'features': [copy.deepcopy(FEATURE)],
-        }
-        with tempfile.TemporaryDirectory() as folder:
-            previous = os.getcwd()
-            try:
-                os.chdir(folder)
-                with patch.dict(os.environ, {'CARTO_API_KEY': key}), patch(
-                    'streamlit_folium.st_folium', wraps=st_folium,
-                ) as displayed:
-                    app.run(timeout=30)
-                self.assertEqual(displayed.call_count, 1)
-                self.displayed_map = displayed.call_args.args[0]
-                self.assertEqual(len(app.exception), 0, str(app.exception))
-                html = Path('mapa_interativo.html').read_text(encoding='utf-8')
-            finally:
-                os.chdir(previous)
-        self.assertIn('Regiao teste', html)
-        self.assertIn('L.geoJson', html)
-        self.assertIn('Cidade:', html)
-        self.assertEqual(len(app.get('download_button')), 1)
-        return html
+    def render_map(self, key=''):
+        data, _, pdvs = preparar_dados(pd.DataFrame([
+            {'Cidade': 'Abaeté', 'UF': 'MG', 'Região': 'Oeste', 'PDVs': 2},
+        ]), GEO)
+        states = json.loads((ROOT / 'data' / 'estados_brasil.geojson').read_text())
+        with patch.dict(os.environ, {'CARTO_API_KEY': key}):
+            return exportar_html(criar_mapa(data, states, pdvs))
 
-    def test_without_key_exports_geographic_basemap_without_carto(self):
-        html = self.render_map('')
+    def test_territorial_view_does_not_activate_tile_layers_on_load(self):
+        html = self.render_map()
         self.assertNotIn('cartocdn.com', html)
-        self.assertIn('World_Topo_Map/MapServer/tile/', html)
         self.assertEqual(html.count('L.tileLayer('), 2)
-        self.assertIn('https://tile.openstreetmap.org/{z}/{x}/{y}.png', html)
-        self.assertNotIn('brasil_fundo', html)
-        self.assertNotIn('#e2e8f0', html)
+        self.assertIn('value="territorial"', html)
+        self.assertNotIn('updateBasemap();', html)
+        self.assertIn('geographic = false', html)
 
-    def test_blank_key_uses_geographic_basemap(self):
-        html = self.render_map('   ')
-        self.assertIn('World_Topo_Map/MapServer/tile/', html)
-        self.assertNotIn('cartocdn.com', html)
+    def test_geographic_options_keep_attribution_and_file_origin_fallback(self):
+        html = self.render_map()
+        for required in ['OpenStreetMap.Mapnik', 'www.openstreetmap.org/copyright',
+                         'World_Topo_Map/MapServer/tile/', 'window.location.protocol',
+                         'document.referrer', 'strict-origin-when-cross-origin']:
+            self.assertIn(required, html)
+        self.assertIn("hasWebOrigin ? 'osm' : 'esri'", html)
 
-    def test_configured_key_is_encoded_and_layer_can_be_hidden(self):
+    def test_optional_carto_key_is_encoded(self):
         html = self.render_map('example&key=value')
         self.assertIn('?key=example%26key%3Dvalue', html)
-        self.assertIn('Mapa base CARTO', html)
         self.assertIn('carto.com/attributions', html)
         self.assertEqual(html.count('L.tileLayer('), 3)
-        self.assertIn('Mapa geogr', html)
 
-    def test_single_state_input_keeps_all_brazil_and_visible_borders(self):
-        html = self.render_map('')
-        data = json.loads((APP.parent / 'data' / 'estados_brasil.geojson').read_text(encoding='utf-8'))
-        expected = set('AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split())
-        self.assertEqual({f['properties']['uf'] for f in data['features']}, expected)
-        self.assertEqual(len(data['features']), 27)
-        for uf in expected:
-            self.assertIn(f'"uf": "{uf}"', html)
-        self.assertIn('.fitBounds(', html)
-        self.assertIn('"weight": 3.5', html)
-        self.assertIn('"weight": 1.2', html)
-        self.assertIn('"fill": false', html)
-        self.assertIn('divisas_estaduais', html)
-        self.assertTrue("pointerEvents = 'none'" in html)
+    def test_all_states_are_preserved_even_for_single_state_input(self):
+        html = self.render_map()
+        states = json.loads((ROOT / 'data' / 'estados_brasil.geojson').read_text())
+        self.assertEqual(len(states['features']), 27)
+        for f in states['features']:
+            self.assertIn('"uf": "' + f['properties']['uf'] + '"', html)
 
-    def test_regions_visible_on_load_and_only_input_state_highlighted(self):
-        html = self.render_map('')
-        group = re.search(r'"Regiao teste"\s*:\s*(feature_group_\w+)', html)
-        self.assertIsNotNone(group)
-        self.assertTrue(re.search(re.escape(group.group(1)) + r'\.addTo\(map_', html) is not None)
-        style = re.search(r'switch\(feature.properties.uf\)\s*\{(.*?)\n\s*\}', html, re.S)
-        self.assertIsNotNone(style)
-        cases = re.findall(r'case "([A-Z]{2})":', style.group(1))
-        self.assertEqual(len(cases), 26)
-        self.assertNotIn('SP', cases)
-        default = re.search(r'default:\s*return (\{[^}]+\});', style.group(1))
-        self.assertEqual(json.loads(default.group(1))['color'], '#1d4ed8')
-        self.assertEqual(json.loads(default.group(1))['weight'], 3.5)
+    def test_spreadsheet_text_cannot_close_script_tag(self):
+        dangerous = '</script><script>window.injected=1</script>'
+        df = pd.DataFrame([{'Cidade': 'Abaeté', 'UF': 'MG', 'Região': dangerous}])
+        data, _, _ = preparar_dados(df, GEO)
+        html = exportar_html(criar_mapa(data, {'type': 'FeatureCollection', 'features': []}, titulo=dangerous))
+        self.assertNotIn(dangerous, html)
+        self.assertIn('\\u003c/script\\u003e', html)
+        self.assertIn('el.textContent = text', html)
 
-    def test_mapnik_has_attribution_and_local_html_fallback(self):
-        html = self.render_map('')
-        self.assertIn('OpenStreetMap.Mapnik', html)
-        self.assertIn('www.openstreetmap.org/copyright', html)
-        self.assertIn('"referrerPolicy": "strict-origin-when-cross-origin"', html)
-        self.assertIn('window.location.protocol', html)
-        self.assertIn('document.referrer', html)
-        self.assertTrue(re.search(r'if \(hasWebOrigin\)\s*\{\s*tile_layer_\w+\.addTo\(map_\w+\);\s*\} else \{\s*tile_layer_\w+\.addTo', html) is not None)
 
-    def test_streamlit_always_starts_mapnik_without_export_fallback(self):
-        self.render_map('')
-        layers = [item for item in self.displayed_map._children.values()
-                  if isinstance(item, folium.TileLayer)]
-        self.assertEqual([item.layer_name for item in layers if item.show], ['OpenStreetMap.Mapnik'])
-        self.assertNotIn('hasWebOrigin', self.displayed_map.get_root().render())
+class StreamlitAppTest(unittest.TestCase):
+    def test_initial_screen_and_example_load(self):
+        app = AppTest.from_file(str(ROOT / 'app_mapa.py')).run(timeout=30)
+        self.assertEqual(len(app.exception), 0, str(app.exception))
+        next(b for b in app.button if b.label == 'Explorar exemplo').click().run(timeout=30)
+        self.assertEqual(len(app.exception), 0, str(app.exception))
+        self.assertEqual([m.value for m in app.metric], ['6', '2', '0', '0'])
+        self.assertEqual(len(app.get('download_button')), 3)
+        self.assertEqual(len(app.get('iframe')), 1)
+
+    def test_pending_rows_are_visible_and_do_not_enter_map(self):
+        app = AppTest.from_file(str(ROOT / 'app_mapa.py'))
+        app.session_state['base_df'] = pd.DataFrame([
+            {'Cidade': 'Abaeté', 'UF': 'MG', 'Região': 'Oeste'},
+            {'Cidade': 'Abaeté', 'UF': 'MG', 'Região': 'Leste'},
+            {'Cidade': 'Divinópolis', 'UF': 'MG', 'Região': 'Oeste'},
+            {'Cidade': 'Inventada', 'UF': 'MG', 'Região': 'Oeste'},
+        ])
+        app.run(timeout=30)
+        self.assertEqual(len(app.exception), 0, str(app.exception))
+        self.assertEqual([m.value for m in app.metric], ['1', '1', '3', '0'])
+        self.assertTrue(app.warning)
+        self.assertEqual(len(app.dataframe[0].value), 4)
 
 
 if __name__ == '__main__':

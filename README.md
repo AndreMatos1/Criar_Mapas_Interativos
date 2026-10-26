@@ -1,76 +1,107 @@
-# Cria-o_Mapas_Interativos
-Este script cria mapas interativos a partir de parâmetros de arquivos Json e Excel.
+# Mapas Interativos
 
-Execute com `streamlit run app_mapa.py` após instalar `pip install -r requirements.txt`.
+Aplicação Streamlit para transformar uma planilha de cidades, UFs e regiões em um mapa de cobertura comercial. A versão 2 inclui um explorador territorial com busca, filtros, legenda interativa e painel de detalhes, tanto na prévia quanto no HTML exportado.
 
-### Fundo do mapa e mensagem “API KEY REQUIRED”
+![Explorador com uma região selecionada](docs/preview-explorador.png)
 
-O provedor CARTO passou a exigir uma chave para seus mapas base. O antigo
-`CartoDB positron` era solicitado sem chave, por isso o próprio serviço devolvia
-imagens com essa mensagem. Não é um erro da planilha ou dos polígonos.
+## Executar
 
-Por padrão, em páginas HTTP/HTTPS o aplicativo usa **OpenStreetMap.Mapnik**, com
-cidades, estradas, rios e países vizinhos, sem solicitações à CARTO e sem chave.
-O controle de camadas também oferece Esri WorldTopoMap como alternativa.
-No Streamlit, o componente `st_folium` inicia explicitamente com Mapnik ativo.
-A escolha automática pela origem da página é aplicada somente à cópia exportada;
-ela não pode substituir Mapnik por Esri dentro do aplicativo.
-Os contornos dos municípios, as cores das regiões, os tooltips e os controles
-continuam disponíveis, tanto no aplicativo quanto no HTML baixado.
+Python 3.10 ou superior:
 
-Para incluir o fundo de ruas e nomes da CARTO, obtenha uma chave em
-https://carto.com/basemaps/apikey e configure a variável de ambiente
-`CARTO_API_KEY` antes de iniciar o Streamlit. Exemplo no PowerShell:
+```bash
+pip install -r requirements.txt
+streamlit run app_mapa.py
+```
+
+Na lateral, carregue um Excel `.xlsx` ou clique em **Explorar exemplo**. O botão **Baixar planilha de exemplo** fornece o modelo de importação.
+
+## Planilha de entrada
+
+| Coluna | Obrigatória | Conteúdo |
+| --- | --- | --- |
+| Cidade | Sim | Nome do município |
+| UF | Sim | Sigla brasileira, por exemplo MG ou SC |
+| Região | Sim | Região comercial ou agrupamento definido por você |
+| PDVs | Não | Quantidade inteira, maior ou igual a zero |
+
+Também são aceitos os nomes `Qtde PDVs` e `Quantidade PDVs` para a coluna opcional de quantidade. Se houver mais de uma dessas colunas, é usada a primeira nesta ordem: `PDVs`, `Qtde PDVs`, `Quantidade PDVs`. Outras colunas são ignoradas nesta versão.
+
+A associação considera **Cidade + UF**, desconsiderando diferenças de caixa, acentos e espaços. A UF é detectada automaticamente e as malhas são lidas dos arquivos locais do projeto. Não há geocodificação por serviços externos.
+
+### Conferência da importação
+
+A aba **Conferência da planilha** exibe todas as linhas e permite baixar um CSV para correção:
+
+- **Mapeado:** município encontrado na malha.
+- **Duplicado consolidado:** repetição de cidade/UF, região e quantidade; entra uma única vez no mapa.
+- **Conflito:** cidade/UF com regiões ou quantidades diferentes; todas as ocorrências ficam fora do mapa até a correção. PDVs de duplicatas não são somados.
+- **Não encontrado / Nome ambíguo:** exige conferência do nome oficial, da UF ou da malha.
+- **Inválido / UF inválida / PDVs inválidos:** dados obrigatórios ausentes ou valores incompatíveis.
+
+Quando a coluna de PDVs existe, uma célula vazia significa **não informado**, enquanto `0` significa nenhum PDV identificado. A soma aparece como parcial se houver valores não informados no recorte. Marcadores representam o total por município em um ponto interior do polígono; não são endereços individuais de estabelecimentos.
+
+## Explorar o mapa
+
+- **Estado e Região:** filtram o resumo e destacam os territórios selecionados. As demais cidades da base ficam discretas como contexto.
+- **Busca:** localiza cidades de toda a base, inclusive fora do filtro atual; aceita nomes sem acentos. Enter seleciona o primeiro resultado e Escape limpa a busca.
+- **Legenda:** mostra quantos municípios pertencem a cada região. Clique para destacar uma região; clique novamente para remover esse filtro.
+- **Seleção:** clique no município ou no marcador para consultar cidade, UF, região, código IBGE e PDVs, se informados.
+- **Navegação:** use o caminho Brasil → UF → Região → Município, os botões Ver minha base / Ver Brasil e os controles de zoom.
+- **Cores:** atribuídas à base completa e mantidas ao filtrar ou reordenar a mesma planilha. Regiões com grafias equivalentes são unificadas; até 12 regiões recebem cores distintas da paleta, com variações adicionais para bases maiores. Alterar a composição da base pode reorganizar cores para evitar repetições.
+- **Visualização:** permite exibir os limites dos demais municípios das UFs da planilha, nomes dos municípios, quantidades de PDVs e trocar a visão territorial pela geográfica. Nomes aparecem a partir do zoom 8. Marcadores variam de 14 a 24 px conforme o zoom.
+- **Apresentação:** oculta busca e configurações, mantendo resumo, legenda e mapa. Tela cheia expande o explorador quando o navegador permite. No celular o painel pode ser recolhido.
+
+## HTML exportado e mapas de fundo
+
+**Baixar mapa interativo em HTML** gera um arquivo independente do Streamlit, com toda a base validada e os mesmos controles de exploração. O arquivo abre inicialmente com a base completa; a seleção momentânea da prévia não é gravada. O título e a configuração inicial de apresentação acompanham a exportação.
+
+A visão **Territorial · fundo limpo** é o padrão. Os polígonos, os dados e o Leaflet acompanham o arquivo, de forma que essa visualização funciona **offline**, sem solicitar imagens de fundo ou bibliotecas a CDNs. A prévia no Streamlit usa exatamente esse HTML.
+
+A visão **Geográfico · ruas e referências** depende de internet e da disponibilidade dos provedores. A seleção automática usa **OpenStreetMap.Mapnik** em páginas HTTP/HTTPS e **Esri WorldTopoMap** no HTML aberto por duplo clique (`file://`), que não envia Referer HTTP. É possível selecionar explicitamente cada provedor. As atribuições são mantidas no mapa. Não há download antecipado ou armazenamento de tiles.
+
+Para usar Mapnik em um HTML local servido por HTTP, na pasta que contém somente os arquivos a compartilhar:
+
+```bash
+python -m http.server 8000 --bind 127.0.0.1
+```
+
+Abra `http://localhost:8000/mapa_interativo.html`. Política do provedor: https://operations.osmfoundation.org/policies/tiles/.
+
+CARTO é uma alternativa opcional quando a variável `CARTO_API_KEY` contém uma chave configurada. Sem chave, nenhuma camada CARTO é criada. A chave integra URLs públicas no HTML; use uma chave destinada a mapas no navegador e configure limites e restrições no provedor. No PowerShell:
 
 ```powershell
 $env:CARTO_API_KEY = 'sua-chave'
 streamlit run app_mapa.py
 ```
 
-A chave é incluída nas URLs públicas do mapa e no HTML exportado; use uma chave
-destinada a mapas no navegador, com as restrições e limites adequados no provedor.
-Uma chave inválida pode voltar a exibir a marca da CARTO. Nesse caso, remova a
-variável e reinicie o aplicativo, ou selecione “OpenStreetMap.Mapnik” no controle de camadas.
-O fundo CARTO é uma alternativa opcional, inicialmente desativada.
+O mapa mantém as 27 UFs como contexto, mesmo quando a planilha inclui apenas uma. A visão inicial enquadra os municípios da base; **Ver Brasil** restaura o contexto nacional.
 
-Gere e baixe novamente os mapas antigos para incorporar a correção. O HTML ainda
-precisa de internet para carregar as imagens do mapa e as bibliotecas JavaScript
-e CSS do Folium. A disponibilidade do fundo depende dos serviços externos;
-a atribuição de cada provedor é mantida no mapa.
+## Organização do projeto
 
-### OpenStreetMap no HTML baixado
+- `app_mapa.py`: importação, conferência, prévia e download no Streamlit.
+- `mapas/dados.py`: validação, associação por Cidade/UF, consolidação, cores e pontos representativos.
+- `mapas/visualizacao.py`: geração do HTML Folium, sem arquivo temporário compartilhado entre sessões.
+- `mapas/assets/explorador.*`: interface e interações do explorador, reaproveitadas na prévia e exportação.
+- `mapas/assets/vendor/leaflet/`: Leaflet 1.9.4, distribuído com sua licença BSD 2-Clause. Origem: https://github.com/Leaflet/Leaflet/tree/v1.9.4/dist.
+- `Json_Polígonos_Geom_Cidades_Brasil/`: malhas municipais por UF.
+- `data/estados_brasil.geojson`: união das malhas municipais, preservando as 27 UFs. Para regenerar após atualizar os municípios: `python scripts/gerar_estados.py`.
 
-O servidor `tile.openstreetmap.org` exige um Referer HTTP válido nas páginas web.
-Um HTML aberto por duplo clique (`file://`) não fornece essa origem, então o
-aplicativo seleciona automaticamente Esri nesse contexto, antes de pedir tiles
-ao OpenStreetMap. OSM continua disponível para páginas servidas por HTTP/HTTPS,
-inclusive o HTML exportado quando hospedado em um servidor web.
-Iframes sem origem web identificável também usam a alternativa Esri.
+A associação usa um índice por Cidade/UF, sem percorrer toda a planilha para cada polígono. O explorador cria coleções geográficas no navegador em vez de gerar um objeto Folium separado por cidade. Bases muito grandes ainda produzem HTMLs maiores, pois os polígonos completos são incorporados.
 
-Para visualizar um HTML local com Mapnik, na pasta que contém apenas os arquivos
-que deseja servir, execute `python -m http.server 8000 --bind 127.0.0.1` e abra
-`http://localhost:8000/mapa_interativo.html` no navegador. Encerre com Ctrl+C.
-Não há download antecipado de tiles nem suporte a mapas offline.
-Política do provedor: https://operations.osmfoundation.org/policies/tiles/.
+## Validação
 
-### Brasil completo e divisas estaduais
+Testes de dados, geração do HTML e fluxo do aplicativo:
 
-O mapa abre enquadrando as 27 UFs, inclusive as que não aparecem na planilha.
-O mapa geográfico fica visível, sem uma camada cinza cobrindo o território.
-Os municípios das UFs carregadas
-mantêm linhas finas (0,35 px). As UFs identificadas na planilha recebem bordas
-azuis espessas (3,5 px); as demais mantêm divisas discretas (1,2 px).
-As regiões coloridas aparecem automaticamente ao carregar a planilha e podem
-ser ocultadas individualmente pelo controle de camadas. O mapa geográfico
-permanece visível em todo o território, com as divisas acima das cores.
-Essa camada não intercepta o mouse, preservando os tooltips dos municípios.
-É possível alternar as divisas no controle de camadas; o contexto nacional
-permanece disponível. O mesmo desenho acompanha o HTML exportado.
+```bash
+python -m unittest discover -s tests -v
+```
 
-A base `data/estados_brasil.geojson` é derivada da união dos municípios já
-incluídos neste repositório, sem simplificação das coordenadas. As divisas são
-locais; as imagens de fundo são carregadas do provedor escolhido. Para regenerar a base após atualizar
-os municípios, instale `shapely` e execute `python scripts/gerar_estados.py`.
-Shapely é necessário apenas nessa regeneração, não na hospedagem do aplicativo.
+Os testes de interação são opcionais e ficam habilitados quando Playwright e Chromium estão disponíveis:
 
-Testes: `python -m unittest discover -s tests -v`.
+```bash
+pip install -r requirements-dev.txt
+python -m playwright install chromium
+python -m unittest discover -s tests -v
+```
+
+Para um Chromium já instalado, a variável `MAPAS_BROWSER_EXECUTABLE` pode apontar para seu executável. Os testes verificam busca, filtros, legenda, detalhes, zero versus ausência de PDVs, zoom, apresentação, tela móvel e comportamento dos fundos. A visão territorial é testada com a rede desativada.
