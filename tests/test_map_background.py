@@ -64,14 +64,34 @@ class MapBackgroundTest(unittest.TestCase):
 
 
 class StreamlitAppTest(unittest.TestCase):
-    def test_initial_screen_and_example_load(self):
+    def test_initial_screen_only_requests_users_file(self):
         app = AppTest.from_file(str(ROOT / 'app_mapa.py')).run(timeout=30)
         self.assertEqual(len(app.exception), 0, str(app.exception))
-        next(b for b in app.button if b.label == 'Explorar exemplo').click().run(timeout=30)
+        self.assertFalse(any(b.label == 'Explorar exemplo' for b in app.button))
+        self.assertEqual(len(app.metric), 0)
+        self.assertEqual(len(app.get('download_button')), 1)
+
+    def test_loaded_file_starts_with_all_regions(self):
+        app = AppTest.from_file(str(ROOT / 'app_mapa.py'))
+        app.session_state['base_df'] = pd.DataFrame([
+            {'Cidade': 'Bom Despacho', 'UF': 'MG', 'Região': 'Oeste'},
+            {'Cidade': 'Piumhi', 'UF': 'MG', 'Região': 'Canastra'},
+        ])
+        app.run(timeout=30)
         self.assertEqual(len(app.exception), 0, str(app.exception))
-        self.assertEqual([m.value for m in app.metric], ['6', '2', '0', '0'])
+        self.assertEqual([m.value for m in app.metric], ['2', '2', '0', '0'])
         self.assertEqual(len(app.get('download_button')), 3)
         self.assertEqual(len(app.get('iframe')), 1)
+
+    def test_old_demo_session_returns_to_upload_screen_without_file(self):
+        app = AppTest.from_file(str(ROOT / 'app_mapa.py'))
+        app.session_state['base_nome'] = 'Exemplo · Minas Gerais'
+        app.session_state['base_df'] = pd.DataFrame([
+            {'Cidade': 'Bom Despacho', 'UF': 'MG', 'Região': 'Oeste'},
+        ])
+        app.run(timeout=30)
+        self.assertEqual(len(app.exception), 0, str(app.exception))
+        self.assertEqual(len(app.metric), 0)
 
     def test_pending_rows_are_visible_and_do_not_enter_map(self):
         app = AppTest.from_file(str(ROOT / 'app_mapa.py'))

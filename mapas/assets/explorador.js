@@ -11,6 +11,12 @@ let selectedState = '', selectedRegion = '', selectedCity = null, currentTiles =
 let geographic = false, presentation = config.apresentacao;
 let pendingResize = null;
 let municipalBoundaries = null;
+let hoveredFeature = null;
+map.createPane('territory-emphasis');
+map.getPane('territory-emphasis').style.zIndex = 460;
+map.getPane('territory-emphasis').style.pointerEvents = 'none';
+const emphasisRenderer = L.svg({pane: 'territory-emphasis', padding: .5});
+const emphasis = L.layerGroup().addTo(map);
 
 function node(tag, text, className) {
   const el = document.createElement(tag);
@@ -42,16 +48,41 @@ function fitBase() {
 function styleCity(f) {
   const active = matches(f.properties), selected = String(f.properties.id) === selectedCity;
   return {color: selected ? '#122c39' : active ? '#ffffff' : '#c4ced2',
-          weight: selected ? 2.8 : active ? .8 : .45,
+          weight: selected ? 2.8 : active ? 1.15 : .6,
           fillColor: active ? f.properties.cor : '#cbd5d9',
-          fillOpacity: active ? (geographic ? .53 : .84) : .15};
+          fillOpacity: active ? (geographic ? .72 : .98) : .20};
 }
 function styleState(f) {
   const uf = f.properties.uf;
   const inBase = baseStates.has(uf);
-  return {color: uf === selectedState ? '#174f62' : '#96aab2',
+  return {color: uf === selectedState ? '#174f62' : '#a5b4c4',
           weight: uf === selectedState ? 2.5 : inBase ? 1.4 : .8,
-          fillColor: '#e4ebee', fillOpacity: geographic ? 0 : .63};
+          fillColor: '#e9eff5', fillOpacity: geographic ? 0 : .86};
+}
+function renderEmphasis() {
+  emphasis.clearLayers();
+  const feature = hoveredFeature || (selectedCity ? byId.get(selectedCity) : null);
+  if (!feature) return;
+  const isCity = Boolean(feature.properties.regiao);
+  const addSurface = (className, style) => {
+    const surface = L.geoJSON(feature, {interactive: false, renderer: emphasisRenderer,
+      pane: 'territory-emphasis', style}).addTo(emphasis);
+    surface.eachLayer(layer => {
+      const path = layer.getElement();
+      path.classList.add(className);
+      path.classList.toggle('is-hovered', Boolean(hoveredFeature));
+      path.setAttribute('data-territory-id', String(feature.properties.id || feature.properties.uf));
+      path.setAttribute('aria-hidden', 'true');
+    });
+  };
+  addSurface('territory-wall', {fill: isCity, fillColor: '#273e59', fillOpacity: .85,
+    color: '#273e59', weight: isCity ? 1.6 : 3.2});
+  addSurface('territory-face', {fill: isCity, fillColor: feature.properties.cor || '#bccbdd',
+    fillOpacity: 1, color: isCity ? '#ffffff' : '#284d70', weight: isCity ? 1.8 : 2.1});
+}
+function hoverTerritory(feature) { hoveredFeature = feature; renderEmphasis(); }
+function leaveTerritory(feature) {
+  if (hoveredFeature === feature) { hoveredFeature = null; renderEmphasis(); }
 }
 function closeDetail() {
   selectedCity = null; $('detail-panel').hidden = true;
@@ -136,6 +167,8 @@ const stateContext = L.geoJSON(states, {style: styleState, onEachFeature: (f, la
   const uf = f.properties.uf; stateLayers.set(uf, layer);
   layer.bindTooltip(node('span', uf), {sticky: true});
   layer.on('click', () => setFilters(uf, ''));
+  layer.on('mouseover', () => hoverTerritory(f));
+  layer.on('mouseout', () => leaveTerritory(f));
 }}).addTo(map);
 const municipalities = L.geoJSON(features, {style: styleCity, onEachFeature: (f, layer) => {
   const p = f.properties; cityLayers.set(String(p.id), layer);
@@ -144,8 +177,8 @@ const municipalities = L.geoJSON(features, {style: styleCity, onEachFeature: (f,
   if (config.temPdvs) tooltip.append(node('div', p.pdvs === null ? 'PDVs não informados' : fmt(p.pdvs) + ' PDVs'));
   layer.bindTooltip(tooltip, {sticky: true});
   layer.on('click', () => showCity(p.id));
-  layer.on('mouseover', () => layer.setStyle({weight: 2, color: '#244959'}));
-  layer.on('mouseout', () => layer.setStyle(styleCity(f)));
+  layer.on('mouseover', () => hoverTerritory(f));
+  layer.on('mouseout', () => leaveTerritory(f));
 }}).addTo(map);
 const labels = L.layerGroup().addTo(map), pdvMarkers = L.layerGroup().addTo(map);
 const centers = new Map();
@@ -167,6 +200,8 @@ function renderMapAnnotations() {
         iconSize: [size, size], iconAnchor: [size/2, size/2]})}).addTo(pdvMarkers);
       marker.bindTooltip(node('span', p.name + ': ' + fmt(p.pdvs) + ' PDVs'));
       marker.on('click', () => showCity(p.id));
+      marker.on('mouseover', () => hoverTerritory(f));
+      marker.on('mouseout', () => leaveTerritory(f));
     }
     if ($('show-names').checked && zoom >= 8) {
       L.circleMarker(point, {radius: 0, stroke: false, fill: false, interactive: false})
@@ -176,7 +211,9 @@ function renderMapAnnotations() {
   });
 }
 function refresh() {
+  hoveredFeature = null;
   municipalities.setStyle(styleCity); stateContext.setStyle(styleState);
+  renderEmphasis();
   renderStats(activeFeatures()); renderLegend(); renderBreadcrumb(); renderMapAnnotations();
   renderSearch();
 }
@@ -207,6 +244,7 @@ function updateBasemap() {
     currentTiles.addTo(map);
   }
   municipalities.setStyle(styleCity); stateContext.setStyle(styleState);
+  renderEmphasis();
 }
 Object.values(basemaps).filter(Boolean).forEach(layer => layer.on('tileerror', () => {
   if (currentTiles === layer) message('O mapa geográfico não carregou. A visão territorial e seus dados continuam disponíveis.');
@@ -264,6 +302,7 @@ map.on('zoomend moveend', () => {
   pendingResize = requestAnimationFrame(renderMapAnnotations);
 });
 map.on('resize', renderMapAnnotations);
+map.on('movestart zoomstart', () => { hoveredFeature = null; renderEmphasis(); });
 // Move os controles para dentro do mapa: continuam visíveis em tela cheia.
 map.getContainer().append($('territorios-ui'));
 L.DomEvent.disableClickPropagation($('territorios-ui'));
